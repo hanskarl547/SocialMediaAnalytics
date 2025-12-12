@@ -242,37 +242,63 @@ class Database:
     
     def save_project(self, user_id, project_name, data_dict, results_dict=None):
         """Sauvegarde un projet pour un utilisateur"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        data_json = json.dumps(data_dict)
-        results_json = json.dumps(results_dict) if results_dict else None
-        
-        # Vérifier si un projet avec ce nom existe déjà
-        cursor.execute('''
-            SELECT id FROM saved_projects
-            WHERE user_id = ? AND project_name = ?
-        ''', (user_id, project_name))
-        
-        existing = cursor.fetchone()
-        
-        if existing:
-            # Mise à jour
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Vérifier que data_dict n'est pas None ou vide
+            if not data_dict:
+                conn.close()
+                return False
+            
+            # Convertir en JSON avec gestion d'erreurs
+            try:
+                data_json = json.dumps(data_dict, default=str, ensure_ascii=False)
+            except (TypeError, ValueError) as e:
+                print(f"Erreur lors de la sérialisation des données: {e}")
+                conn.close()
+                return False
+            
+            try:
+                results_json = json.dumps(results_dict, default=str, ensure_ascii=False) if results_dict else None
+            except (TypeError, ValueError) as e:
+                print(f"Erreur lors de la sérialisation des résultats: {e}")
+                results_json = None
+            
+            # Vérifier si un projet avec ce nom existe déjà
             cursor.execute('''
-                UPDATE saved_projects
-                SET data_json = ?, results_json = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            ''', (data_json, results_json, existing['id']))
-        else:
-            # Nouvelle sauvegarde
-            cursor.execute('''
-                INSERT INTO saved_projects (user_id, project_name, data_json, results_json)
-                VALUES (?, ?, ?, ?)
-            ''', (user_id, project_name, data_json, results_json))
-        
-        conn.commit()
-        conn.close()
-        return True
+                SELECT id FROM saved_projects
+                WHERE user_id = ? AND project_name = ?
+            ''', (user_id, project_name))
+            
+            existing = cursor.fetchone()
+            
+            if existing:
+                # Mise à jour
+                cursor.execute('''
+                    UPDATE saved_projects
+                    SET data_json = ?, results_json = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (data_json, results_json, existing['id']))
+            else:
+                # Nouvelle sauvegarde
+                cursor.execute('''
+                    INSERT INTO saved_projects (user_id, project_name, data_json, results_json)
+                    VALUES (?, ?, ?, ?)
+                ''', (user_id, project_name, data_json, results_json))
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde du projet: {e}")
+            import traceback
+            traceback.print_exc()
+            try:
+                conn.close()
+            except:
+                pass
+            return False
     
     def load_project(self, user_id, project_name):
         """Charge un projet sauvegardé"""

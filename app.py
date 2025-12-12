@@ -117,11 +117,33 @@ def generate_custom_css():
         color: #1f2937 !important;
     }}
     
-    /* Texte blanc pour les zones avec fonds sombres ou gradients */
-    div[style*="gradient"] h1, div[style*="gradient"] h2, 
-    div[style*="gradient"] h3, div[style*="gradient"] p,
-    div[style*="gradient"] span, div[style*="gradient"] div {{
+    /* Texte blanc UNIQUEMENT pour les zones avec gradients sombres (violet/rose) */
+    div[style*="gradient"][style*="#667eea"] h1, 
+    div[style*="gradient"][style*="#667eea"] h2, 
+    div[style*="gradient"][style*="#667eea"] h3, 
+    div[style*="gradient"][style*="#667eea"] p,
+    div[style*="gradient"][style*="#f093fb"] h1,
+    div[style*="gradient"][style*="#f093fb"] h2,
+    div[style*="gradient"][style*="#f093fb"] h3,
+    div[style*="gradient"][style*="#f093fb"] p,
+    div[style*="gradient"][style*="#10b981"] h1,
+    div[style*="gradient"][style*="#10b981"] h2,
+    div[style*="gradient"][style*="#10b981"] h3,
+    div[style*="gradient"][style*="#10b981"] p {{
         color: white !important;
+        font-family: {font_css} !important;
+    }}
+    
+    /* Texte noir pour les autres zones avec gradients clairs */
+    div[style*="gradient"][style*="#f8f9fa"] h1, 
+    div[style*="gradient"][style*="#f8f9fa"] h2, 
+    div[style*="gradient"][style*="#f8f9fa"] h3, 
+    div[style*="gradient"][style*="#f8f9fa"] p,
+    div[style*="gradient"][style*="#ffffff"] h1,
+    div[style*="gradient"][style*="#ffffff"] h2,
+    div[style*="gradient"][style*="#ffffff"] h3,
+    div[style*="gradient"][style*="#ffffff"] p {{
+        color: #1f2937 !important;
         font-family: {font_css} !important;
     }}
     
@@ -207,6 +229,36 @@ def generate_custom_css():
     .stTabs [data-baseweb="tab"] {{
         color: #1f2937 !important;
         font-family: {font_css} !important;
+        background-color: #ffffff !important;
+    }}
+    
+    /* Texte noir pour les onglets actifs et inactifs */
+    .stTabs [data-baseweb="tab"] > div {{
+        color: #1f2937 !important;
+        background-color: #ffffff !important;
+    }}
+    
+    /* Texte noir pour le contenu des onglets */
+    .stTabs [data-baseweb="tab"] span {{
+        color: #1f2937 !important;
+    }}
+    
+    /* Onglets actifs avec fond clair et texte noir */
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+        color: #1f2937 !important;
+        background-color: #f3f4f6 !important;
+        border-bottom: 2px solid #667eea !important;
+    }}
+    
+    /* Onglets inactifs avec texte noir */
+    .stTabs [data-baseweb="tab"][aria-selected="false"] {{
+        color: #1f2937 !important;
+        background-color: #ffffff !important;
+    }}
+    
+    /* Forcer le texte en noir pour tous les éléments dans les onglets */
+    .stTabs [data-baseweb="tab"] * {{
+        color: #1f2937 !important;
     }}
     
     /* Améliorer la visibilité des métriques */
@@ -224,6 +276,59 @@ def generate_custom_css():
     .element-container, .stMarkdown {{
         color: #1f2937 !important;
         font-family: {font_css} !important;
+    }}
+    
+    /* Masquer le footer GitHub de Streamlit Cloud */
+    footer[data-testid="stFooter"],
+    footer[data-testid="stFooter"] *,
+    .stApp footer,
+    .stApp footer *,
+    div[data-testid="stDecoration"],
+    iframe[title*="github"],
+    iframe[title*="GitHub"],
+    a[href*="github.com"] {{
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        opacity: 0 !important;
+    }}
+    
+    /* Forcer le texte en noir pour les sections sans gradient sombre */
+    .stMarkdown h1:not([style*="color: white"]):not([style*="color:white"]),
+    .stMarkdown h2:not([style*="color: white"]):not([style*="color:white"]),
+    .stMarkdown h3:not([style*="color: white"]):not([style*="color:white"]),
+    .stMarkdown p:not([style*="color: white"]):not([style*="color:white"]),
+    .stMarkdown span:not([style*="color: white"]):not([style*="color:white"]),
+    .stMarkdown div:not([style*="color: white"]):not([style*="color:white"]) {{
+        color: #1f2937 !important;
+    }}
+    
+    /* Exception pour les textes explicitement en blanc dans les gradients sombres (headers uniquement) */
+    div[style*="gradient"][style*="#667eea"] h1,
+    div[style*="gradient"][style*="#667eea"] h2,
+    div[style*="gradient"][style*="#667eea"] h3,
+    div[style*="gradient"][style*="#f093fb"] h1,
+    div[style*="gradient"][style*="#f093fb"] h2,
+    div[style*="gradient"][style*="#f093fb"] h3,
+    div[style*="gradient"][style*="#10b981"] h1,
+    div[style*="gradient"][style*="#10b981"] h2,
+    div[style*="gradient"][style*="#10b981"] h3 {{
+        color: white !important;
+    }}
+    
+    /* Forcer le texte en noir pour les boutons et onglets avec gradient */
+    button[style*="gradient"],
+    .stButton button[style*="gradient"],
+    div[style*="gradient"] button,
+    div[style*="gradient"] .stTabs *,
+    .stTabs [data-baseweb="tab"][style*="gradient"] * {{
+        color: #1f2937 !important;
+    }}
+    
+    /* Forcer le texte en noir pour les éléments de navigation avec gradient */
+    div[style*="gradient"]:not([style*="color: white"]):not([style*="color:white"]) *:not(h1):not(h2):not(h3):not(p[style*="color: white"]):not(p[style*="color:white"]) {{
+        color: #1f2937 !important;
     }}
     
     /* Forcer le fond blanc pour les inputs */
@@ -487,6 +592,33 @@ def generate_custom_css():
         padding: 10px 20px;
         font-weight: 600;
         font-family: {font_css} !important;
+        color: #1f2937 !important;
+        background-color: #ffffff !important;
+    }}
+    
+    /* Forcer le texte en noir pour tous les onglets */
+    .stTabs [data-baseweb="tab"] > div,
+    .stTabs [data-baseweb="tab"] span,
+    .stTabs [data-baseweb="tab"] p {{
+        color: #1f2937 !important;
+    }}
+    
+    /* Onglets actifs avec fond clair */
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+        background-color: #f3f4f6 !important;
+        color: #1f2937 !important;
+        border-bottom: 3px solid #667eea !important;
+    }}
+    
+    /* Onglets inactifs */
+    .stTabs [data-baseweb="tab"][aria-selected="false"] {{
+        background-color: #ffffff !important;
+        color: #1f2937 !important;
+    }}
+    
+    /* Override pour les onglets avec gradient - forcer texte noir */
+    .stTabs [data-baseweb="tab"] * {{
+        color: #1f2937 !important;
     }}
     
     /* Amélioration des inputs */
@@ -2350,61 +2482,83 @@ def show_analysis_page():
     if save_button:
         if project_name and project_name.strip():
             try:
-                # Fonction helper pour convertir les types numpy en types Python natifs
-                def convert_numpy_types(obj):
-                    """Convertit les types numpy en types Python natifs pour la sérialisation JSON"""
-                    if isinstance(obj, (np.integer, np.int_, np.intc, np.intp, np.int8,
-                                       np.int16, np.int32, np.int64, np.uint8, np.uint16,
-                                       np.uint32, np.uint64)):
-                        return int(obj)
-                    elif isinstance(obj, (np.floating, np.float_, np.float16, np.float32, np.float64)):
-                        return float(obj)
-                    elif isinstance(obj, (np.bool_, bool)):
-                        return bool(obj)
-                    elif isinstance(obj, np.ndarray):
-                        return obj.tolist()
-                    elif isinstance(obj, (pd.Timestamp, datetime)):
-                        return str(obj)
-                    elif isinstance(obj, dict):
-                        return {key: convert_numpy_types(value) for key, value in obj.items()}
-                    elif isinstance(obj, (list, tuple)):
-                        return [convert_numpy_types(item) for item in obj]
-                    elif pd.isna(obj):
-                        return None
-                    else:
-                        return obj
-                
-                # Convertir le DataFrame en dictionnaire et nettoyer les types
-                data_dict = df.to_dict('records')
-                data_dict = convert_numpy_types(data_dict)
-                
-                # Récupérer les résultats d'analyse si disponibles
-                results_dict = None
-                if analyzer:
-                    results_dict = analyzer.get_all_results()
-                    if results_dict:
-                        results_dict = convert_numpy_types(results_dict)
-                
-                # Sauvegarder le projet
-                success = st.session_state.db.save_project(
-                    st.session_state.user['id'],
-                    project_name.strip(),
-                    data_dict,
-                    results_dict
-                )
-                
-                if success:
-                    # Notification
-                    notif_manager = get_notification_manager()
-                    notif_manager.notify_project_saved(project_name.strip())
-                    
-                    st.success(f"✅ Projet '{project_name.strip()}' sauvegardé avec succès!")
-                    st.info("💡 Vous pouvez retrouver ce projet dans la section '💾 Mes projets'")
-                    st.balloons()
+                # Vérifier que des données sont disponibles
+                if df is None or df.empty:
+                    st.warning("⚠️ Aucune donnée à sauvegarder. Veuillez d'abord importer des données.")
                 else:
-                    st.error("❌ Erreur lors de la sauvegarde du projet")
+                    # Fonction helper pour convertir les types numpy en types Python natifs
+                    def convert_numpy_types(obj):
+                        """Convertit les types numpy en types Python natifs pour la sérialisation JSON"""
+                        if isinstance(obj, (np.integer, np.int_, np.intc, np.intp, np.int8,
+                                           np.int16, np.int32, np.int64, np.uint8, np.uint16,
+                                           np.uint32, np.uint64)):
+                            return int(obj)
+                        elif isinstance(obj, (np.floating, np.float_, np.float16, np.float32, np.float64)):
+                            return float(obj)
+                        elif isinstance(obj, (np.bool_, bool)):
+                            return bool(obj)
+                        elif isinstance(obj, np.ndarray):
+                            return obj.tolist()
+                        elif isinstance(obj, (pd.Timestamp, datetime)):
+                            return str(obj)
+                        elif isinstance(obj, dict):
+                            return {key: convert_numpy_types(value) for key, value in obj.items()}
+                        elif isinstance(obj, (list, tuple)):
+                            return [convert_numpy_types(item) for item in obj]
+                        elif pd.isna(obj):
+                            return None
+                        else:
+                            return obj
+                    
+                    # Convertir le DataFrame en dictionnaire et nettoyer les types
+                    try:
+                        data_dict = df.to_dict('records')
+                        data_dict = convert_numpy_types(data_dict)
+                    except Exception as e:
+                        st.error(f"❌ Erreur lors de la conversion des données: {str(e)}")
+                        return
+                    
+                    # Récupérer les résultats d'analyse si disponibles
+                    results_dict = None
+                    if analyzer:
+                        try:
+                            results_dict = analyzer.get_all_results()
+                            if results_dict:
+                                results_dict = convert_numpy_types(results_dict)
+                        except Exception as e:
+                            st.warning(f"⚠️ Les résultats d'analyse n'ont pas pu être sauvegardés: {str(e)}")
+                            results_dict = None
+                    
+                    # Sauvegarder le projet
+                    try:
+                        success = st.session_state.db.save_project(
+                            st.session_state.user['id'],
+                            project_name.strip(),
+                            data_dict,
+                            results_dict
+                        )
+                        
+                        if success:
+                            # Notification
+                            try:
+                                notif_manager = get_notification_manager()
+                                notif_manager.notify_project_saved(project_name.strip())
+                            except:
+                                pass  # Ne pas bloquer si la notification échoue
+                            
+                            st.success(f"✅ Projet '{project_name.strip()}' sauvegardé avec succès!")
+                            st.info("💡 Vous pouvez retrouver ce projet dans la section '💾 Mes projets'")
+                            st.balloons()
+                        else:
+                            st.error("❌ Erreur lors de la sauvegarde du projet dans la base de données")
+                    except Exception as e:
+                        st.error(f"❌ Erreur lors de la sauvegarde dans la base de données: {str(e)}")
+                        import traceback
+                        st.code(traceback.format_exc())
             except Exception as e:
                 st.error(f"❌ Erreur lors de la sauvegarde: {str(e)}")
+                import traceback
+                st.code(traceback.format_exc())
         else:
             st.warning("⚠️ Veuillez entrer un nom pour votre projet")
 

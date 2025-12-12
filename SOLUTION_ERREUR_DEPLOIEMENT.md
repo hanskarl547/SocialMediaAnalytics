@@ -8,6 +8,8 @@ Le déploiement échoue avec ces erreurs :
 
 **Cause** : Streamlit Cloud utilise Python 3.13 par défaut, mais les anciennes versions de pandas/scipy ne sont pas compatibles.
 
+---
+
 ## ✅ Solution appliquée
 
 J'ai fait deux choses :
