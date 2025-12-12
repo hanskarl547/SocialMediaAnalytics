@@ -99,6 +99,22 @@ def generate_custom_css():
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800;900&display=swap');
     
+    /* Correction pour les icônes Material Icons non chargées */
+    /* Masquer le texte "keyboard_double_arrow_right" et autres icônes Material non rendues */
+    [class*="keyboard_double"], 
+    [class*="material-icons"],
+    [data-testid*="keyboard"] {{
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+    }}
+    
+    
     /* Style global avec police personnalisée */
     .main {{
         font-family: {font_css} !important;
@@ -806,6 +822,61 @@ def generate_custom_css():
 # Générer et appliquer le CSS personnalisé
 custom_css = generate_custom_css()
 st.markdown(custom_css, unsafe_allow_html=True)
+
+# Script JavaScript pour masquer le texte "keyboard_double_arrow_right"
+hide_icon_script = """
+<script>
+(function() {
+    function hideKeyboardDoubleArrow() {
+        // Chercher tous les éléments qui contiennent ce texte
+        const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        while (node = walker.nextNode()) {
+            if (node.textContent && node.textContent.includes('keyboard_double_arrow_right')) {
+                if (node.parentElement) {
+                    node.parentElement.style.display = 'none';
+                    node.parentElement.style.visibility = 'hidden';
+                    node.parentElement.style.opacity = '0';
+                    node.parentElement.style.fontSize = '0';
+                    node.parentElement.style.height = '0';
+                    node.parentElement.style.width = '0';
+                    node.parentElement.style.overflow = 'hidden';
+                }
+            }
+        }
+    }
+    
+    // Exécuter immédiatement
+    hideKeyboardDoubleArrow();
+    
+    // Exécuter après le chargement de la page
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hideKeyboardDoubleArrow);
+    } else {
+        hideKeyboardDoubleArrow();
+    }
+    
+    // Exécuter après un court délai pour les éléments chargés dynamiquement
+    setTimeout(hideKeyboardDoubleArrow, 100);
+    setTimeout(hideKeyboardDoubleArrow, 500);
+    setTimeout(hideKeyboardDoubleArrow, 1000);
+    
+    // Observer les changements du DOM
+    const observer = new MutationObserver(hideKeyboardDoubleArrow);
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+})();
+</script>
+"""
+st.markdown(hide_icon_script, unsafe_allow_html=True)
 
 def landing_page():
     """Page de présentation professionnelle"""
