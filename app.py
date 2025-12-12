@@ -2488,14 +2488,17 @@ def show_analysis_page():
                 else:
                     # Fonction helper pour convertir les types numpy en types Python natifs
                     def convert_numpy_types(obj):
-                        """Convertit les types numpy en types Python natifs pour la sérialisation JSON"""
-                        if isinstance(obj, (np.integer, np.int_, np.intc, np.intp, np.int8,
-                                           np.int16, np.int32, np.int64, np.uint8, np.uint16,
-                                           np.uint32, np.uint64)):
+                        """Convertit les types numpy en types Python natifs pour la sérialisation JSON
+                        Compatible avec NumPy 1.x et 2.x"""
+                        # Utiliser les classes de base qui fonctionnent dans toutes les versions de NumPy
+                        if isinstance(obj, np.integer):
                             return int(obj)
-                        elif isinstance(obj, (np.floating, np.float_, np.float16, np.float32, np.float64)):
+                        elif isinstance(obj, np.floating):
                             return float(obj)
-                        elif isinstance(obj, (np.bool_, bool)):
+                        elif isinstance(obj, bool):
+                            return bool(obj)
+                        # Gestion de np.bool_ pour compatibilité (peut ne pas exister en NumPy 2.0+)
+                        elif hasattr(np, 'bool_') and isinstance(obj, np.bool_):
                             return bool(obj)
                         elif isinstance(obj, np.ndarray):
                             return obj.tolist()
