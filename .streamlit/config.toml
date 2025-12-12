@@ -1,0 +1,21 @@
+[server]
+headless = true
+port = 8501
+# enableCORS est automatiquement défini à true quand enableXsrfProtection=true
+enableXsrfProtection = true
+maxUploadSize = 200
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#667eea"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f8f9fa"
+textColor = "#1f2937"
+font = "sans serif"
+
+[client]
+showErrorDetails = false
+
+
