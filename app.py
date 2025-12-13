@@ -253,29 +253,18 @@ st.markdown("""
             }
         });
         
-        // MÉTHODE 2: Masquer tous les éléments contenant ce texte
+        // MÉTHODE 2: Remplacer le texte par une icône emoji dans tous les éléments
         const allElements = document.querySelectorAll('*');
         allElements.forEach(function(el) {
             if (el.textContent && (el.textContent.includes('keyboard_double_arrow_right') || 
                 el.textContent.includes('keyboard_double'))) {
-                // Supprimer le texte
-                el.textContent = el.textContent.replace(/keyboard_double_arrow_right/g, '');
-                el.textContent = el.textContent.replace(/keyboard_double/g, '');
-                // Masquer l'élément
-                el.style.display = 'none';
-                el.style.visibility = 'hidden';
-                el.style.opacity = '0';
-                el.style.fontSize = '0';
-                el.style.height = '0';
-                el.style.width = '0';
-                el.style.overflow = 'hidden';
-                el.style.position = 'absolute';
-                el.style.left = '-9999px';
-                el.style.pointerEvents = 'none';
+                // Remplacer le texte par une icône emoji simple
+                el.textContent = el.textContent.replace(/keyboard_double_arrow_right/g, '➡️');
+                el.textContent = el.textContent.replace(/keyboard_double/g, '➡️');
             }
         });
         
-        // MÉTHODE 3: MASQUER UNIQUEMENT LE TEXTE (solution simple et sûre)
+        // MÉTHODE 3: REMPLACER LE TEXTE PAR UNE ICÔNE EMOJI SIMPLE (solution simple et sûre)
         const sidebar = document.querySelector('[data-testid="stSidebar"]');
         if (sidebar) {
             // Parcourir tous les nœuds texte dans la sidebar
@@ -290,63 +279,40 @@ st.markdown("""
             while (node = walker.nextNode()) {
                 if (node.textContent && (node.textContent.includes('keyboard_double_arrow_right') || 
                     node.textContent.includes('keyboard_double'))) {
-                    // Masquer uniquement le texte, pas l'élément parent
+                    // Remplacer le texte par une icône emoji simple qui s'affichera toujours
+                    node.textContent = node.textContent.replace(/keyboard_double_arrow_right/g, '➡️');
+                    node.textContent = node.textContent.replace(/keyboard_double/g, '➡️');
+                    
+                    // S'assurer que l'élément parent est visible
                     const parent = node.parentElement;
                     if (parent) {
-                        // Remplacer le texte par une chaîne vide visuellement
-                        node.textContent = node.textContent.replace(/keyboard_double_arrow_right/g, '');
-                        node.textContent = node.textContent.replace(/keyboard_double/g, '');
-                        
-                        // Si le parent ne contient plus que ce texte, le masquer visuellement
-                        if (!parent.textContent || parent.textContent.trim() === '') {
-                            parent.style.color = 'transparent';
-                            parent.style.fontSize = '0';
-                            parent.style.lineHeight = '0';
-                            parent.style.opacity = '0';
-                            parent.style.visibility = 'hidden';
-                            parent.style.height = '0';
-                            parent.style.overflow = 'hidden';
-                        } else {
-                            // Sinon, masquer juste visuellement le texte restant
-                            parent.style.color = parent.textContent.includes('keyboard') ? 'transparent' : '';
-                        }
+                        parent.style.color = '';
+                        parent.style.fontSize = '';
+                        parent.style.lineHeight = '';
+                        parent.style.opacity = '';
+                        parent.style.visibility = '';
+                        parent.style.height = '';
+                        parent.style.overflow = '';
                     }
                 }
             }
             
-            // Aussi parcourir les éléments pour masquer visuellement
+            // Aussi parcourir les éléments pour remplacer le texte
             const sidebarElements = sidebar.querySelectorAll('*');
             sidebarElements.forEach(function(el) {
                 const elText = el.textContent || '';
                 if (elText.includes('keyboard_double_arrow_right') || 
                     elText.includes('keyboard_double')) {
-                    // Masquer visuellement sans supprimer l'élément
-                    el.style.color = 'transparent';
-                    el.style.fontSize = '0';
-                    el.style.lineHeight = '0';
-                    el.style.opacity = '0';
-                    el.style.visibility = 'hidden';
-                    // Garder la structure mais masquer le contenu
-                }
-            });
-        }
-            
-            // Parcourir TOUS les éléments de la sidebar et supprimer le texte problématique
-            const sidebarElements = sidebar.querySelectorAll('*');
-            sidebarElements.forEach(function(el) {
-                if (el.textContent && (el.textContent.includes('keyboard_double_arrow_right') || 
-                    el.textContent.includes('keyboard_double'))) {
-                    // Supprimer complètement le texte
-                    el.textContent = el.textContent.replace(/keyboard_double_arrow_right/g, '');
-                    el.textContent = el.textContent.replace(/keyboard_double/g, '');
+                    // Remplacer le texte par l'emoji
+                    el.textContent = elText.replace(/keyboard_double_arrow_right/g, '➡️');
+                    el.textContent = el.textContent.replace(/keyboard_double/g, '➡️');
                     
-                    // Masquer l'élément
-                    el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important;';
-                    
-                    // Essayer de supprimer
-                    try {
-                        el.remove();
-                    } catch(e) {}
+                    // Rendre l'élément visible
+                    el.style.color = '';
+                    el.style.fontSize = '';
+                    el.style.lineHeight = '';
+                    el.style.opacity = '';
+                    el.style.visibility = '';
                 }
             });
         }
