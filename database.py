@@ -338,9 +338,5 @@ class Database:
             connection.commit()
             return True
 
-# Remplacer la classe Database existante par la nouvelle implémentation
-# Renommer le fichier original pour le conserver en tant que référence
-os.rename('/home/ubuntu/project_analysis/SocialMediaAnalytics/database.py', 
-          '/home/ubuntu/project_analysis/SocialMediaAnalytics/database_sqlite_old.py')
-os.rename('/home/ubuntu/project_analysis/SocialMediaAnalytics/database_mysql.py', 
-          '/home/ubuntu/project_analysis/SocialMediaAnalytics/database.py')
+# Note: Ce fichier contient l'implémentation de la base de données
+# Les opérations de migration/renommage de fichiers doivent être faites manuellement si nécessaire
