@@ -6,9 +6,21 @@ Utilise OpenAI GPT pour générer des interprétations détaillées
 import openai
 import os
 from dotenv import load_dotenv
-from real_world_ai_interpreter import RealWorldAIInterpreter
 
 load_dotenv()
+
+# Import conditionnel pour éviter les erreurs si le module n'est pas disponible
+try:
+    from real_world_ai_interpreter import RealWorldAIInterpreter
+    REAL_WORLD_INTERPRETER_AVAILABLE = True
+except (ImportError, KeyError, ModuleNotFoundError) as e:
+    # Gérer les erreurs d'import (ImportError, KeyError, ModuleNotFoundError)
+    REAL_WORLD_INTERPRETER_AVAILABLE = False
+    RealWorldAIInterpreter = None
+    # Optionnel: logger l'erreur pour le débogage
+    import sys
+    if hasattr(sys, 'stderr'):
+        print(f"Warning: Could not import RealWorldAIInterpreter: {e}", file=sys.stderr)
 
 class AIAssistant:
     def __init__(self):
@@ -16,7 +28,16 @@ class AIAssistant:
         self.api_key = os.getenv('OPENAI_API_KEY', '')
         if self.api_key:
             openai.api_key = self.api_key
-        self.real_world_interpreter = RealWorldAIInterpreter()
+        
+        # Initialiser l'interpréteur seulement s'il est disponible
+        if REAL_WORLD_INTERPRETER_AVAILABLE and RealWorldAIInterpreter:
+            try:
+                self.real_world_interpreter = RealWorldAIInterpreter()
+            except Exception as e:
+                print(f"Warning: Could not initialize RealWorldAIInterpreter: {e}")
+                self.real_world_interpreter = None
+        else:
+            self.real_world_interpreter = None
     
     def interpret_results(self, analysis_results, is_premium=False, platform_comparison=None):
         """
