@@ -61,6 +61,21 @@ if import_errors:
         st.error(f"  - {error}")
     st.stop()
 
+# 🔹 Charger la police des icônes (OBLIGATOIRE)
+st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+      rel="stylesheet">
+""", unsafe_allow_html=True)
+
+# 🔹 Corriger l'affichage des icônes
+st.markdown("""
+<style>
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Script JavaScript pour masquer le footer GitHub et le texte "keyboard_double_arrow_right" - EXÉCUTÉ EN PREMIER
 st.markdown("""
 <script>
