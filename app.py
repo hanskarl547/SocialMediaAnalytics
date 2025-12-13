@@ -4604,6 +4604,10 @@ def main():
     if 'show_landing' not in st.session_state:
         st.session_state.show_landing = True
     
+    # Initialiser user si pas déjà défini
+    if 'user' not in st.session_state:
+        st.session_state.user = None
+    
     # Afficher la page de présentation si nécessaire
     if st.session_state.show_landing and st.session_state.user is None:
         landing_page()
