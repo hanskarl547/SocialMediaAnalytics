@@ -7,19 +7,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import sys
 from datetime import datetime
 from dotenv import load_dotenv
 import plotly.express as px
 
-# Importer les modules personnalisés
-from database import Database
-from statistical_analysis import StatisticalAnalyzer
-from ai_assistant import AIAssistant
-from visualizations import DataVisualizer
-from country_map import CountryMapVisualizer
-from notifications import NotificationManager
-
-# Configuration
+# Configuration Streamlit (doit être fait avant les imports qui utilisent st)
 load_dotenv()
 st.set_page_config(
     page_title="Social Media Analytics Pro",
@@ -27,6 +20,46 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Importer les modules personnalisés avec gestion d'erreurs
+import_errors = []
+
+try:
+    from database import Database
+except (ImportError, KeyError, ModuleNotFoundError) as e:
+    import_errors.append(f"database: {e}")
+
+try:
+    from statistical_analysis import StatisticalAnalyzer
+except (ImportError, KeyError, ModuleNotFoundError) as e:
+    import_errors.append(f"statistical_analysis: {e}")
+
+try:
+    from ai_assistant import AIAssistant
+except (ImportError, KeyError, ModuleNotFoundError) as e:
+    import_errors.append(f"ai_assistant: {e}")
+
+try:
+    from visualizations import DataVisualizer
+except (ImportError, KeyError, ModuleNotFoundError) as e:
+    import_errors.append(f"visualizations: {e}")
+
+try:
+    from country_map import CountryMapVisualizer
+except (ImportError, KeyError, ModuleNotFoundError) as e:
+    import_errors.append(f"country_map: {e}")
+
+try:
+    from notifications import NotificationManager
+except (ImportError, KeyError, ModuleNotFoundError) as e:
+    import_errors.append(f"notifications: {e}")
+
+# Afficher les erreurs d'import si nécessaire
+if import_errors:
+    st.error("❌ Erreurs lors du chargement des modules:")
+    for error in import_errors:
+        st.error(f"  - {error}")
+    st.stop()
 
 # Initialisation
 if 'db' not in st.session_state:
@@ -99,8 +132,20 @@ def generate_custom_css():
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800;900&display=swap');
     
-        /* Tentative de correction: Import explicite de Material Icons */
-    @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+    /* Correction pour les icônes Material Icons non chargées */
+    /* Masquer le texte "keyboard_double_arrow_right" et autres icônes Material non rendues */
+    [class*="keyboard_double"], 
+    [class*="material-icons"],
+    [data-testid*="keyboard"] {{
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+    }}
     
     
     /* Style global avec police personnalisée */
