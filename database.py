@@ -17,96 +17,170 @@ class Database:
     def __init__(self):
         self.db_url = os.getenv('DATABASE_URL')
         if not self.db_url:
-            # Fallback pour le mode démo ou si l'utilisateur n'a pas configuré
-            print("ATTENTION: DATABASE_URL non configurée. Utilisation d'une base de données en mémoire (non persistante).")
-            self.db_url = "sqlite:///:memory:"
+            # Fallback pour SQLite sur Streamlit Cloud
+            self.db_url = "sqlite:///social_analytics.db"
         
         try:
-            self.engine = create_engine(self.db_url)
+            self.engine = create_engine(self.db_url, echo=False)
+            # Détecter le type de base de données
+            self.is_sqlite = 'sqlite' in self.db_url.lower()
             self.init_database()
         except Exception as e:
             print(f"Erreur lors de la connexion à la base de données: {e}")
-            # En cas d'échec, revenir à SQLite en mémoire pour permettre à l'application de démarrer
-            self.db_url = "sqlite:///:memory:"
-            self.engine = create_engine(self.db_url)
+            # En cas d'échec, revenir à SQLite pour permettre à l'application de démarrer
+            self.db_url = "sqlite:///social_analytics.db"
+            self.engine = create_engine(self.db_url, echo=False)
+            self.is_sqlite = True
             self.init_database()
 
     def init_database(self):
-        """Initialise les tables de la base de données"""
+        """Initialise les tables de la base de données avec syntaxe adaptée"""
         try:
             with self.engine.connect() as connection:
-                # Table des utilisateurs
-                connection.execute(text("""
-                    CREATE TABLE IF NOT EXISTS users (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        email VARCHAR(255) UNIQUE NOT NULL,
-                        password_hash VARCHAR(255) NOT NULL,
-                        first_name VARCHAR(255),
-                        last_name VARCHAR(255),
-                        company VARCHAR(255),
-                        phone VARCHAR(255),
-                        job_title VARCHAR(255),
-                        bio TEXT,
-                        is_premium BOOLEAN DEFAULT FALSE,
-                        premium_expires DATETIME,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        last_login DATETIME
-                    )
-                """))
+                if self.is_sqlite:
+                    # Syntaxe SQLite
+                    # Table des utilisateurs
+                    connection.execute(text("""
+                        CREATE TABLE IF NOT EXISTS users (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            email TEXT UNIQUE NOT NULL,
+                            password_hash TEXT NOT NULL,
+                            first_name TEXT,
+                            last_name TEXT,
+                            company TEXT,
+                            phone TEXT,
+                            job_title TEXT,
+                            bio TEXT,
+                            is_premium INTEGER DEFAULT 0,
+                            premium_expires TEXT,
+                            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                            last_login TEXT
+                        )
+                    """))
+                    
+                    # Table des paiements
+                    connection.execute(text("""
+                        CREATE TABLE IF NOT EXISTS payments (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            amount REAL NOT NULL,
+                            currency TEXT DEFAULT 'EUR',
+                            stripe_payment_id TEXT,
+                            status TEXT DEFAULT 'pending',
+                            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users (id)
+                        )
+                    """))
+                    
+                    # Table des sauvegardes de travaux
+                    connection.execute(text("""
+                        CREATE TABLE IF NOT EXISTS saved_projects (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            project_name TEXT NOT NULL,
+                            data_json TEXT NOT NULL,
+                            results_json TEXT,
+                            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users (id),
+                            UNIQUE(user_id, project_name)
+                        )
+                    """))
+                    
+                    # Table des préférences utilisateur
+                    connection.execute(text("""
+                        CREATE TABLE IF NOT EXISTS user_preferences (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER UNIQUE NOT NULL,
+                            theme TEXT DEFAULT 'light',
+                            primary_color TEXT DEFAULT '#667eea',
+                            secondary_color TEXT DEFAULT '#764ba2',
+                            accent_color TEXT DEFAULT '#f093fb',
+                            text_color TEXT DEFAULT '#1f2937',
+                            background_color TEXT DEFAULT '#ffffff',
+                            font_family TEXT DEFAULT 'Arial',
+                            language TEXT DEFAULT 'fr',
+                            notifications_enabled INTEGER DEFAULT 1,
+                            email_notifications INTEGER DEFAULT 1,
+                            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users (id)
+                        )
+                    """))
+                else:
+                    # Syntaxe MySQL/MariaDB
+                    # Table des utilisateurs
+                    connection.execute(text("""
+                        CREATE TABLE IF NOT EXISTS users (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            email VARCHAR(255) UNIQUE NOT NULL,
+                            password_hash VARCHAR(255) NOT NULL,
+                            first_name VARCHAR(255),
+                            last_name VARCHAR(255),
+                            company VARCHAR(255),
+                            phone VARCHAR(255),
+                            job_title VARCHAR(255),
+                            bio TEXT,
+                            is_premium BOOLEAN DEFAULT FALSE,
+                            premium_expires DATETIME,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            last_login DATETIME
+                        )
+                    """))
+                    
+                    # Table des paiements
+                    connection.execute(text("""
+                        CREATE TABLE IF NOT EXISTS payments (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            user_id INT NOT NULL,
+                            amount DECIMAL(10, 2) NOT NULL,
+                            currency VARCHAR(10) DEFAULT 'EUR',
+                            stripe_payment_id VARCHAR(255),
+                            status VARCHAR(50) DEFAULT 'pending',
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users (id)
+                        )
+                    """))
+                    
+                    # Table des sauvegardes de travaux
+                    connection.execute(text("""
+                        CREATE TABLE IF NOT EXISTS saved_projects (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            user_id INT NOT NULL,
+                            project_name VARCHAR(255) NOT NULL,
+                            data_json JSON NOT NULL,
+                            results_json JSON,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users (id),
+                            UNIQUE KEY unique_project (user_id, project_name)
+                        )
+                    """))
+                    
+                    # Table des préférences utilisateur
+                    connection.execute(text("""
+                        CREATE TABLE IF NOT EXISTS user_preferences (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            user_id INT UNIQUE NOT NULL,
+                            theme VARCHAR(50) DEFAULT 'light',
+                            primary_color VARCHAR(50) DEFAULT '#667eea',
+                            secondary_color VARCHAR(50) DEFAULT '#764ba2',
+                            accent_color VARCHAR(50) DEFAULT '#f093fb',
+                            text_color VARCHAR(50) DEFAULT '#1f2937',
+                            background_color VARCHAR(50) DEFAULT '#ffffff',
+                            font_family VARCHAR(50) DEFAULT 'Arial',
+                            language VARCHAR(10) DEFAULT 'fr',
+                            notifications_enabled BOOLEAN DEFAULT TRUE,
+                            email_notifications BOOLEAN DEFAULT TRUE,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users (id)
+                        )
+                    """))
                 
-                # Table des paiements
-                connection.execute(text("""
-                    CREATE TABLE IF NOT EXISTS payments (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        user_id INT NOT NULL,
-                        amount DECIMAL(10, 2) NOT NULL,
-                        currency VARCHAR(10) DEFAULT 'EUR',
-                        stripe_payment_id VARCHAR(255),
-                        status VARCHAR(50) DEFAULT 'pending',
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users (id)
-                    )
-                """))
-                
-                # Table des sauvegardes de travaux
-                connection.execute(text("""
-                    CREATE TABLE IF NOT EXISTS saved_projects (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        user_id INT NOT NULL,
-                        project_name VARCHAR(255) NOT NULL,
-                        data_json JSON NOT NULL,
-                        results_json JSON,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users (id),
-                        UNIQUE KEY unique_project (user_id, project_name)
-                    )
-                """))
-                
-                # Table des préférences utilisateur
-                connection.execute(text("""
-                    CREATE TABLE IF NOT EXISTS user_preferences (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        user_id INT UNIQUE NOT NULL,
-                        theme VARCHAR(50) DEFAULT 'light',
-                        primary_color VARCHAR(50) DEFAULT '#667eea',
-                        secondary_color VARCHAR(50) DEFAULT '#764ba2',
-                        accent_color VARCHAR(50) DEFAULT '#f093fb',
-                        text_color VARCHAR(50) DEFAULT '#1f2937',
-                        background_color VARCHAR(50) DEFAULT '#ffffff',
-                        font_family VARCHAR(50) DEFAULT 'Arial',
-                        language VARCHAR(10) DEFAULT 'fr',
-                        notifications_enabled BOOLEAN DEFAULT TRUE,
-                        email_notifications BOOLEAN DEFAULT TRUE,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users (id)
-                    )
-                """))
                 connection.commit()
         except SQLAlchemyError as e:
             print(f"Erreur lors de l'initialisation de la base de données: {e}")
-            # En cas d'erreur d'initialisation, l'application ne peut pas continuer
             raise
 
     def hash_password(self, password):
@@ -163,11 +237,18 @@ class Database:
             
             if user:
                 # Mise à jour du dernier login
-                connection.execute(text("""
-                    UPDATE users
-                    SET last_login = NOW()
-                    WHERE id = :id
-                """), {'id': user[0]}) # user[0] est l'ID
+                if self.is_sqlite:
+                    connection.execute(text("""
+                        UPDATE users
+                        SET last_login = datetime('now')
+                        WHERE id = :id
+                    """), {'id': user[0]}) # user[0] est l'ID
+                else:
+                    connection.execute(text("""
+                        UPDATE users
+                        SET last_login = NOW()
+                        WHERE id = :id
+                    """), {'id': user[0]}) # user[0] est l'ID
                 connection.commit()
                 
                 # Convertir le résultat en dictionnaire pour la compatibilité
@@ -206,17 +287,31 @@ class Database:
         with self.engine.connect() as connection:
             if is_premium:
                 expiry = datetime.now() + timedelta(days=duration_days)
-                connection.execute(text("""
-                    UPDATE users
-                    SET is_premium = TRUE, premium_expires = :expiry
-                    WHERE id = :user_id
-                """), {'expiry': expiry.strftime('%Y-%m-%d %H:%M:%S'), 'user_id': user_id})
+                if self.is_sqlite:
+                    connection.execute(text("""
+                        UPDATE users
+                        SET is_premium = 1, premium_expires = :expiry
+                        WHERE id = :user_id
+                    """), {'expiry': expiry.strftime('%Y-%m-%d %H:%M:%S'), 'user_id': user_id})
+                else:
+                    connection.execute(text("""
+                        UPDATE users
+                        SET is_premium = TRUE, premium_expires = :expiry
+                        WHERE id = :user_id
+                    """), {'expiry': expiry.strftime('%Y-%m-%d %H:%M:%S'), 'user_id': user_id})
             else:
-                connection.execute(text("""
-                    UPDATE users
-                    SET is_premium = FALSE, premium_expires = NULL
-                    WHERE id = :user_id
-                """), {'user_id': user_id})
+                if self.is_sqlite:
+                    connection.execute(text("""
+                        UPDATE users
+                        SET is_premium = 0, premium_expires = NULL
+                        WHERE id = :user_id
+                    """), {'user_id': user_id})
+                else:
+                    connection.execute(text("""
+                        UPDATE users
+                        SET is_premium = FALSE, premium_expires = NULL
+                        WHERE id = :user_id
+                    """), {'user_id': user_id})
             connection.commit()
 
     def record_payment(self, user_id, amount, stripe_payment_id, status='completed'):
@@ -244,13 +339,24 @@ class Database:
             prefs = result.fetchone()
             return dict(prefs._mapping) if prefs else None
 
-    def update_user_preferences(self, user_id, preferences):
-        """Met à jour les préférences utilisateur"""
+    def update_user_preferences(self, user_id, **preferences):
+        """Met à jour les préférences utilisateur
+        
+        Args:
+            user_id: ID de l'utilisateur
+            **preferences: Paramètres nommés des préférences à mettre à jour
+        """
+        if not preferences:
+            return
+        
         # Construction dynamique de la requête UPDATE
         set_clauses = [f"{key} = :{key}" for key in preferences.keys()]
-        query = f"UPDATE user_preferences SET {', '.join(set_clauses)}, updated_at = NOW() WHERE user_id = :user_id"
+        if self.is_sqlite:
+            query = f"UPDATE user_preferences SET {', '.join(set_clauses)}, updated_at = datetime('now') WHERE user_id = :user_id"
+        else:
+            query = f"UPDATE user_preferences SET {', '.join(set_clauses)}, updated_at = NOW() WHERE user_id = :user_id"
         
-        params = preferences
+        params = dict(preferences)
         params['user_id'] = user_id
         
         with self.engine.connect() as connection:
@@ -269,11 +375,20 @@ class Database:
                 # Pour une compatibilité maximale, on tente un UPDATE puis un INSERT
                 
                 # 1. Tenter la mise à jour
-                update_result = connection.execute(text("""
-                    UPDATE saved_projects
-                    SET data_json = :data_json, results_json = :results_json, updated_at = NOW()
-                    WHERE user_id = :user_id AND project_name = :project_name
-                """), {
+                if self.is_sqlite:
+                    update_query = """
+                        UPDATE saved_projects
+                        SET data_json = :data_json, results_json = :results_json, updated_at = datetime('now')
+                        WHERE user_id = :user_id AND project_name = :project_name
+                    """
+                else:
+                    update_query = """
+                        UPDATE saved_projects
+                        SET data_json = :data_json, results_json = :results_json, updated_at = NOW()
+                        WHERE user_id = :user_id AND project_name = :project_name
+                    """
+                
+                update_result = connection.execute(text(update_query), {
                     'user_id': user_id,
                     'project_name': project_name,
                     'data_json': data_json,
@@ -337,6 +452,52 @@ class Database:
             """), {'user_id': user_id, 'project_name': project_name})
             connection.commit()
             return True
+
+    def get_user_profile(self, user_id):
+        """Récupère le profil complet d'un utilisateur"""
+        with self.engine.connect() as connection:
+            result = connection.execute(text("""
+                SELECT * FROM users
+                WHERE id = :user_id
+            """), {'user_id': user_id})
+            
+            user = result.fetchone()
+            if user:
+                return dict(user._mapping)
+            return None
+
+    def update_user_profile(self, user_id, **profile_data):
+        """Met à jour le profil utilisateur
+        
+        Args:
+            user_id: ID de l'utilisateur
+            **profile_data: Paramètres nommés des données de profil à mettre à jour
+        """
+        if not profile_data:
+            return
+        
+        # Construction dynamique de la requête UPDATE
+        set_clauses = [f"{key} = :{key}" for key in profile_data.keys()]
+        query = f"UPDATE users SET {', '.join(set_clauses)} WHERE id = :user_id"
+        
+        params = dict(profile_data)
+        params['user_id'] = user_id
+        
+        with self.engine.connect() as connection:
+            connection.execute(text(query), params)
+            connection.commit()
+
+    def get_user_projects(self, user_id):
+        """Récupère tous les projets d'un utilisateur"""
+        with self.engine.connect() as connection:
+            result = connection.execute(text("""
+                SELECT id, project_name, created_at, updated_at
+                FROM saved_projects
+                WHERE user_id = :user_id
+                ORDER BY updated_at DESC
+            """), {'user_id': user_id})
+            
+            return [dict(row._mapping) for row in result]
 
 # Note: Ce fichier contient l'implémentation de la base de données
 # Les opérations de migration/renommage de fichiers doivent être faites manuellement si nécessaire
