@@ -61,6 +61,118 @@ if import_errors:
         st.error(f"  - {error}")
     st.stop()
 
+# Script JavaScript pour masquer le texte "keyboard_double_arrow_right" - EXÉCUTÉ EN PREMIER
+st.markdown("""
+<script>
+(function() {
+    function hideKeyboardDoubleArrow() {
+        // Méthode 1: Chercher par texte dans tous les nœuds
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(function(el) {
+            if (el.textContent && (el.textContent.includes('keyboard_double_arrow_right') || 
+                el.textContent.includes('keyboard_double'))) {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+                el.style.fontSize = '0';
+                el.style.height = '0';
+                el.style.width = '0';
+                el.style.overflow = 'hidden';
+                el.style.position = 'absolute';
+                el.style.left = '-9999px';
+            }
+        });
+        
+        // Méthode 2: Chercher dans la sidebar spécifiquement
+        const sidebar = document.querySelector('[data-testid="stSidebar"]');
+        if (sidebar) {
+            const sidebarElements = sidebar.querySelectorAll('*');
+            sidebarElements.forEach(function(el) {
+                if (el.textContent && (el.textContent.includes('keyboard_double_arrow_right') || 
+                    el.textContent.includes('keyboard_double'))) {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                    el.style.opacity = '0';
+                    el.style.fontSize = '0';
+                    el.style.height = '0';
+                    el.style.width = '0';
+                    el.style.overflow = 'hidden';
+                }
+            });
+        }
+        
+        // Méthode 3: Chercher les nœuds texte directement
+        const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        while (node = walker.nextNode()) {
+            if (node.textContent.includes('keyboard_double_arrow_right') || 
+                node.textContent.includes('keyboard_double')) {
+                if (node.parentElement) {
+                    node.parentElement.style.display = 'none';
+                    node.parentElement.style.visibility = 'hidden';
+                    node.parentElement.style.opacity = '0';
+                    node.parentElement.style.fontSize = '0';
+                    node.parentElement.style.height = '0';
+                    node.parentElement.style.width = '0';
+                    node.parentElement.style.overflow = 'hidden';
+                    // Supprimer aussi le nœud texte lui-même
+                    node.textContent = '';
+                }
+            }
+        }
+    }
+    
+    // Exécuter immédiatement
+    hideKeyboardDoubleArrow();
+    
+    // Exécuter après le chargement
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            hideKeyboardDoubleArrow();
+            setInterval(hideKeyboardDoubleArrow, 100);
+        });
+    } else {
+        hideKeyboardDoubleArrow();
+        setInterval(hideKeyboardDoubleArrow, 100);
+    }
+    
+    // Exécuter avec des délais
+    setTimeout(hideKeyboardDoubleArrow, 50);
+    setTimeout(hideKeyboardDoubleArrow, 100);
+    setTimeout(hideKeyboardDoubleArrow, 200);
+    setTimeout(hideKeyboardDoubleArrow, 500);
+    setTimeout(hideKeyboardDoubleArrow, 1000);
+    setTimeout(hideKeyboardDoubleArrow, 2000);
+    
+    // Observer les changements du DOM
+    const observer = new MutationObserver(function(mutations) {
+        hideKeyboardDoubleArrow();
+    });
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+    });
+    
+    // Exécuter en continu toutes les 100ms pendant 5 secondes
+    let count = 0;
+    const interval = setInterval(function() {
+        hideKeyboardDoubleArrow();
+        count++;
+        if (count > 50) { // 5 secondes
+            clearInterval(interval);
+        }
+    }, 100);
+})();
+</script>
+""", unsafe_allow_html=True)
+
 # Initialisation
 if 'db' not in st.session_state:
     st.session_state.db = Database()
@@ -132,7 +244,7 @@ def generate_custom_css():
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800;900&display=swap');
     
-    /* Correction pour les icônes Material Icons non chargées */
+    /* Correction pour les icônes Material Icons non chargées - VERSION AGRESSIVE */
     /* Masquer le texte "keyboard_double_arrow_right" et autres icônes Material non rendues */
     [class*="keyboard_double"], 
     [class*="material-icons"],
@@ -157,10 +269,16 @@ def generate_custom_css():
         left: -9999px !important;
     }}
     
-    /* Masquer les éléments dans la sidebar qui pourraient contenir ce texte */
-    [data-testid="stSidebar"] > div:first-child,
-    [data-testid="stSidebar"] > div:first-child > * {{
-        /* On laisse le JavaScript gérer le contenu textuel */
+    /* Masquer spécifiquement le premier élément de la sidebar s'il contient keyboard_double */
+    [data-testid="stSidebar"] > div:first-child:has-text("keyboard_double"),
+    [data-testid="stSidebar"] > div:first-child:has-text("keyboard_double_arrow_right") {{
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        font-size: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
     }}
     
     
@@ -1603,12 +1721,37 @@ def main_app():
     # Appliquer les préférences utilisateur
     apply_user_preferences()
     
-    # Script JavaScript pour masquer le texte "keyboard_double_arrow_right"
+    # Script JavaScript pour masquer le texte "keyboard_double_arrow_right" - VERSION AGRESSIVE
     st.markdown("""
     <script>
     (function() {
         function hideKeyboardDoubleArrow() {
-            // Chercher tous les éléments qui contiennent ce texte
+            // Méthode 1: Parcourir tous les éléments
+            const allElements = document.querySelectorAll('*');
+            allElements.forEach(function(el) {
+                if (el.textContent && (el.textContent.includes('keyboard_double_arrow_right') || 
+                    el.textContent.includes('keyboard_double'))) {
+                    el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important;';
+                }
+            });
+            
+            // Méthode 2: Chercher dans la sidebar
+            const sidebar = document.querySelector('[data-testid="stSidebar"]');
+            if (sidebar) {
+                const sidebarElements = sidebar.querySelectorAll('*');
+                sidebarElements.forEach(function(el) {
+                    if (el.textContent && (el.textContent.includes('keyboard_double_arrow_right') || 
+                        el.textContent.includes('keyboard_double'))) {
+                        el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important;';
+                        // Supprimer aussi le texte
+                        if (el.firstChild && el.firstChild.nodeType === 3) {
+                            el.firstChild.textContent = '';
+                        }
+                    }
+                });
+            }
+            
+            // Méthode 3: Parcourir les nœuds texte
             const walker = document.createTreeWalker(
                 document.body,
                 NodeFilter.SHOW_TEXT,
@@ -1620,44 +1763,11 @@ def main_app():
             while (node = walker.nextNode()) {
                 if (node.textContent.includes('keyboard_double_arrow_right') || 
                     node.textContent.includes('keyboard_double')) {
-                    // Masquer l'élément parent
+                    // Supprimer le texte
+                    node.textContent = '';
+                    // Masquer le parent
                     if (node.parentElement) {
-                        node.parentElement.style.display = 'none';
-                        node.parentElement.style.visibility = 'hidden';
-                        node.parentElement.style.opacity = '0';
-                        node.parentElement.style.fontSize = '0';
-                        node.parentElement.style.height = '0';
-                        node.parentElement.style.width = '0';
-                        node.parentElement.style.overflow = 'hidden';
-                        node.parentElement.style.position = 'absolute';
-                        node.parentElement.style.left = '-9999px';
-                    }
-                }
-            }
-            
-            // Chercher aussi dans la sidebar spécifiquement
-            const sidebar = document.querySelector('[data-testid="stSidebar"]');
-            if (sidebar) {
-                const sidebarWalker = document.createTreeWalker(
-                    sidebar,
-                    NodeFilter.SHOW_TEXT,
-                    null,
-                    false
-                );
-                
-                let sidebarNode;
-                while (sidebarNode = sidebarWalker.nextNode()) {
-                    if (sidebarNode.textContent.includes('keyboard_double_arrow_right') || 
-                        sidebarNode.textContent.includes('keyboard_double')) {
-                        if (sidebarNode.parentElement) {
-                            sidebarNode.parentElement.style.display = 'none';
-                            sidebarNode.parentElement.style.visibility = 'hidden';
-                            sidebarNode.parentElement.style.opacity = '0';
-                            sidebarNode.parentElement.style.fontSize = '0';
-                            sidebarNode.parentElement.style.height = '0';
-                            sidebarNode.parentElement.style.width = '0';
-                            sidebarNode.parentElement.style.overflow = 'hidden';
-                        }
+                        node.parentElement.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important;';
                     }
                 }
             }
@@ -1666,25 +1776,42 @@ def main_app():
         // Exécuter immédiatement
         hideKeyboardDoubleArrow();
         
-        // Exécuter après le chargement de la page
+        // Exécuter après le chargement
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', hideKeyboardDoubleArrow);
+            document.addEventListener('DOMContentLoaded', function() {
+                hideKeyboardDoubleArrow();
+                setInterval(hideKeyboardDoubleArrow, 50);
+            });
         } else {
             hideKeyboardDoubleArrow();
+            setInterval(hideKeyboardDoubleArrow, 50);
         }
         
-        // Exécuter après un court délai pour les éléments chargés dynamiquement
-        setTimeout(hideKeyboardDoubleArrow, 100);
-        setTimeout(hideKeyboardDoubleArrow, 500);
-        setTimeout(hideKeyboardDoubleArrow, 1000);
-        setTimeout(hideKeyboardDoubleArrow, 2000);
+        // Exécuter avec des délais multiples
+        [50, 100, 200, 500, 1000, 2000, 3000, 5000].forEach(function(delay) {
+            setTimeout(hideKeyboardDoubleArrow, delay);
+        });
         
         // Observer les changements du DOM
-        const observer = new MutationObserver(hideKeyboardDoubleArrow);
+        const observer = new MutationObserver(function(mutations) {
+            hideKeyboardDoubleArrow();
+        });
         observer.observe(document.body, {
             childList: true,
-            subtree: true
+            subtree: true,
+            characterData: true,
+            attributes: true
         });
+        
+        // Exécuter en continu pendant 10 secondes
+        let count = 0;
+        const interval = setInterval(function() {
+            hideKeyboardDoubleArrow();
+            count++;
+            if (count > 200) { // 10 secondes (200 * 50ms)
+                clearInterval(interval);
+            }
+        }, 50);
     })();
     </script>
     """, unsafe_allow_html=True)
