@@ -98,7 +98,19 @@ st.markdown("""
 /* Cibler les éléments dans la sidebar qui pourraient contenir ce texte */
 [data-testid="stSidebar"] button[aria-label*="keyboard"],
 [data-testid="stSidebar"] [role="button"][aria-label*="keyboard"],
-[data-testid="stSidebar"] [title*="keyboard"] {
+[data-testid="stSidebar"] [title*="keyboard"],
+[data-testid="stSidebar"] button[aria-label*="Collapse"],
+[data-testid="stSidebar"] button[aria-label*="Expand"],
+[data-testid="stSidebar"] button[aria-label*="Close"],
+[data-testid="stSidebar"] button[aria-label*="Open"],
+/* Masquer le premier bouton de la sidebar (bouton collapse) */
+[data-testid="stSidebar"] > div:first-child button:first-child,
+[data-testid="stSidebar"] > div:first-child > div:first-child button,
+[data-testid="stSidebar"] > div > div:first-child button,
+/* Masquer le bouton header de la sidebar */
+[data-testid="stSidebar"] button[kind="header"],
+/* Masquer tous les boutons au début de la sidebar */
+[data-testid="stSidebar"] button:first-of-type {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -108,6 +120,17 @@ st.markdown("""
     position: absolute !important;
     left: -9999px !important;
     pointer-events: none !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+}
+
+/* Masquer spécifiquement les spans/divs contenant le texte (via JavaScript, mais on prépare le CSS) */
+[data-testid="stSidebar"] span[class*="icon"],
+[data-testid="stSidebar"] div[class*="icon"] {
+    font-size: 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -272,12 +295,23 @@ st.markdown("""
             const elText = (el.textContent || '').trim();
             // Si l'élément contient UNIQUEMENT le texte problématique (pas de menu)
             if ((elText === 'keyboard_double_arrow_right' || 
-                 elText === 'keyboard_double') &&
-                elText.length < 30) { // Éviter les menus
+                 elText === 'keyboard_double' ||
+                 elText.includes('keyboard_double_arrow_right')) &&
+                elText.length < 50) { // Éviter les menus
                 // Masquer complètement
                 el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important;';
+                // Vider le texte aussi
+                el.textContent = '';
             }
         });
+        
+        // MÉTHODE 3: Cibler directement le premier bouton de la sidebar (bouton collapse)
+        const firstButton = sidebar.querySelector('button:first-of-type');
+        if (firstButton && (firstButton.textContent.includes('keyboard') || firstButton.getAttribute('aria-label')?.includes('keyboard'))) {
+            firstButton.style.display = 'none';
+            firstButton.style.visibility = 'hidden';
+            firstButton.textContent = '';
+        }
     }
     
     // EXÉCUTION TRÈS AGRESSIVE - Supprimer immédiatement et continuellement
