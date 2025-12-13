@@ -255,49 +255,72 @@ st.markdown("""
             }
         });
         
-        // MÉTHODE 3: SOLUTION ULTIME - MASQUER SYSTÉMATIQUEMENT LE PREMIER ÉLÉMENT (EN HAUT À GAUCHE)
+        // MÉTHODE 3: MASQUER UNIQUEMENT LES ÉLÉMENTS CONTENANT LE TEXTE PROBLÉMATIQUE
         const sidebar = document.querySelector('[data-testid="stSidebar"]');
         if (sidebar) {
-            // SOLUTION RADICALE : Masquer TOUJOURS le premier enfant, SANS CONDITION
-            const firstChild = sidebar.firstElementChild;
-            if (firstChild) {
-                // Appliquer TOUS les styles de masquage possibles
-                firstChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; line-height: 0 !important; height: 0 !important; width: 0 !important; max-height: 0 !important; max-width: 0 !important; min-height: 0 !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; border: none !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important; z-index: -9999 !important; pointer-events: none !important; user-select: none !important; clip: rect(0, 0, 0, 0) !important; clip-path: inset(100%) !important;';
-                
-                // Supprimer TOUT le contenu texte
-                firstChild.textContent = '';
-                firstChild.innerHTML = '';
-                
-                // Masquer aussi TOUS les enfants et descendants
-                const allDescendants = firstChild.querySelectorAll('*');
-                allDescendants.forEach(function(descendant) {
-                    descendant.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important;';
-                    descendant.textContent = '';
-                    descendant.innerHTML = '';
-                });
-                
-                // Essayer de supprimer complètement du DOM
-                try {
-                    firstChild.remove();
-                } catch(e) {
-                    // Si la suppression échoue, on garde le masquage CSS
+            // Parcourir TOUS les éléments de la sidebar pour trouver ceux qui contiennent le texte
+            const sidebarElements = sidebar.querySelectorAll('*');
+            sidebarElements.forEach(function(el) {
+                const elText = el.textContent || '';
+                // NE masquer QUE si l'élément contient le texte problématique
+                if (elText.includes('keyboard_double_arrow_right') || 
+                    elText.includes('keyboard_double')) {
+                    // Masquer l'élément
+                    el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important;';
+                    
+                    // Supprimer le texte
+                    el.textContent = '';
+                    
+                    // Essayer de supprimer
+                    try {
+                        el.remove();
+                    } catch(e) {}
+                }
+            });
+            
+            // Parcourir aussi les nœuds texte directement
+            const walker = document.createTreeWalker(
+                sidebar,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            const textNodesToRemove = [];
+            let node;
+            while (node = walker.nextNode()) {
+                if (node.textContent && (node.textContent.includes('keyboard_double_arrow_right') || 
+                    node.textContent.includes('keyboard_double'))) {
+                    textNodesToRemove.push(node);
                 }
             }
             
-            // Aussi masquer le deuxième enfant au cas où
-            const secondChild = sidebar.children[1];
-            if (secondChild) {
-                const secondChildText = secondChild.textContent || '';
-                if (secondChildText.includes('keyboard_double_arrow_right') || 
-                    secondChildText.includes('keyboard_double')) {
-                    secondChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important;';
-                    secondChild.textContent = '';
-                    secondChild.innerHTML = '';
-                    try {
-                        secondChild.remove();
-                    } catch(e) {}
+            // Supprimer les nœuds texte trouvés
+            textNodesToRemove.forEach(function(textNode) {
+                // Supprimer le texte
+                textNode.textContent = '';
+                // Masquer le parent si nécessaire
+                if (textNode.parentElement) {
+                    const parent = textNode.parentElement;
+                    // Vérifier si le parent ne contient que ce texte
+                    if (!parent.textContent || parent.textContent.trim() === '' || 
+                        parent.textContent.includes('keyboard_double')) {
+                        parent.style.display = 'none';
+                        parent.style.visibility = 'hidden';
+                        parent.style.opacity = '0';
+                        parent.style.height = '0';
+                        parent.style.width = '0';
+                        parent.style.overflow = 'hidden';
+                    }
                 }
-            }
+                // Supprimer le nœud texte
+                try {
+                    textNode.remove();
+                } catch(e) {
+                    textNode.textContent = '';
+                }
+            });
+        }
             
             // Parcourir TOUS les éléments de la sidebar et supprimer le texte problématique
             const sidebarElements = sidebar.querySelectorAll('*');
@@ -452,82 +475,8 @@ def generate_custom_css():
        (où apparaît souvent "keyboard_double_arrow_right")
        ============================================ */
     
-    /* ============================================
-       SOLUTION ULTIME : MASQUER TOUT EN HAUT À GAUCHE DE LA SIDEBAR
-       ============================================ */
-    
-    /* Masquer TOUS les enfants directs de la sidebar (solution radicale) */
-    [data-testid="stSidebar"] > * {{
-        /* On va laisser le JS gérer, mais on prépare le terrain */
-    }}
-    
-    /* Masquer spécifiquement le premier élément et ses variantes */
-    [data-testid="stSidebar"] > div:first-child,
-    [data-testid="stSidebar"] > div:nth-child(1),
-    [data-testid="stSidebar"] > div:first-of-type,
-    [data-testid="stSidebar"] > :first-child,
-    [data-testid="stSidebar"] > :nth-child(1),
-    [data-testid="stSidebar"] > section:first-child,
-    [data-testid="stSidebar"] > nav:first-child,
-    [data-testid="stSidebar"] > header:first-child,
-    /* Masquer aussi le 2ème et 3ème enfant */
-    [data-testid="stSidebar"] > div:nth-child(2),
-    [data-testid="stSidebar"] > :nth-child(2),
-    [data-testid="stSidebar"] > div:nth-child(3),
-    [data-testid="stSidebar"] > :nth-child(3) {{
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        font-size: 0 !important;
-        line-height: 0 !important;
-        height: 0 !important;
-        width: 0 !important;
-        max-height: 0 !important;
-        max-width: 0 !important;
-        min-height: 0 !important;
-        min-width: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        border: none !important;
-        overflow: hidden !important;
-        position: absolute !important;
-        left: -9999px !important;
-        top: -9999px !important;
-        z-index: -9999 !important;
-        pointer-events: none !important;
-        user-select: none !important;
-        clip: rect(0, 0, 0, 0) !important;
-        clip-path: inset(100%) !important;
-    }}
-    
-    /* Masquer TOUS les enfants et descendants des premiers éléments */
-    [data-testid="stSidebar"] > div:first-child *,
-    [data-testid="stSidebar"] > div:nth-child(1) *,
-    [data-testid="stSidebar"] > div:first-of-type *,
-    [data-testid="stSidebar"] > :first-child *,
-    [data-testid="stSidebar"] > :nth-child(1) *,
-    [data-testid="stSidebar"] > section:first-child *,
-    [data-testid="stSidebar"] > nav:first-child *,
-    [data-testid="stSidebar"] > header:first-child *,
-    [data-testid="stSidebar"] > div:nth-child(2) *,
-    [data-testid="stSidebar"] > :nth-child(2) *,
-    [data-testid="stSidebar"] > div:nth-child(3) *,
-    [data-testid="stSidebar"] > :nth-child(3) * {{
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        font-size: 0 !important;
-        height: 0 !important;
-        width: 0 !important;
-        overflow: hidden !important;
-        pointer-events: none !important;
-        clip: rect(0, 0, 0, 0) !important;
-    }}
-    
-    /* Masquer aussi tout texte contenant "keyboard" dans la sidebar */
-    [data-testid="stSidebar"] * {{
-        /* On va utiliser JS pour filtrer, mais on prépare */
-    }}
+    /* Masquer UNIQUEMENT les éléments contenant "keyboard_double_arrow_right" - NE PAS masquer les menus ! */
+    /* Le JavaScript gère cela de manière sélective pour ne masquer que le texte problématique */
     
     /* Masquer les éléments avec classes/attributs keyboard */
     [class*="keyboard_double"], 
