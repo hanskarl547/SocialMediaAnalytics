@@ -255,40 +255,47 @@ st.markdown("""
             }
         });
         
-        // MÉTHODE 3: SOLUTION ULTIME - MASQUER L'ÉLÉMENT EN HAUT À GAUCHE DE LA SIDEBAR
+        // MÉTHODE 3: SOLUTION ULTIME - MASQUER SYSTÉMATIQUEMENT LE PREMIER ÉLÉMENT (EN HAUT À GAUCHE)
         const sidebar = document.querySelector('[data-testid="stSidebar"]');
         if (sidebar) {
-            // Cibler TOUS les enfants en haut de la sidebar (généralement le premier ou les deux premiers)
-            const children = Array.from(sidebar.children);
+            // SOLUTION RADICALE : Masquer TOUJOURS le premier enfant, SANS CONDITION
+            const firstChild = sidebar.firstElementChild;
+            if (firstChild) {
+                // Appliquer TOUS les styles de masquage possibles
+                firstChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; line-height: 0 !important; height: 0 !important; width: 0 !important; max-height: 0 !important; max-width: 0 !important; min-height: 0 !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; border: none !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important; z-index: -9999 !important; pointer-events: none !important; user-select: none !important; clip: rect(0, 0, 0, 0) !important; clip-path: inset(100%) !important;';
+                
+                // Supprimer TOUT le contenu texte
+                firstChild.textContent = '';
+                firstChild.innerHTML = '';
+                
+                // Masquer aussi TOUS les enfants et descendants
+                const allDescendants = firstChild.querySelectorAll('*');
+                allDescendants.forEach(function(descendant) {
+                    descendant.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important;';
+                    descendant.textContent = '';
+                    descendant.innerHTML = '';
+                });
+                
+                // Essayer de supprimer complètement du DOM
+                try {
+                    firstChild.remove();
+                } catch(e) {
+                    // Si la suppression échoue, on garde le masquage CSS
+                }
+            }
             
-            // Masquer les 3 premiers enfants (pour être sûr de couvrir tout)
-            for (let i = 0; i < Math.min(3, children.length); i++) {
-                const child = children[i];
-                if (child) {
-                    const childText = child.textContent || '';
-                    // Masquer si contient le texte OU si c'est le premier enfant (en haut à gauche)
-                    if (i === 0 || childText.includes('keyboard_double_arrow_right') || 
-                        childText.includes('keyboard_double')) {
-                        // Appliquer tous les styles de masquage
-                        child.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; max-height: 0 !important; max-width: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important; pointer-events: none !important; user-select: none !important;';
-                        
-                        // Supprimer tout le texte
-                        child.textContent = '';
-                        
-                        // Masquer aussi tous les enfants
-                        const childChildren = child.querySelectorAll('*');
-                        childChildren.forEach(function(grandChild) {
-                            grandChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important;';
-                            grandChild.textContent = '';
-                        });
-                        
-                        // Essayer de supprimer complètement du DOM
-                        try {
-                            child.remove();
-                        } catch(e) {
-                            // Si la suppression échoue, on garde le masquage CSS
-                        }
-                    }
+            // Aussi masquer le deuxième enfant au cas où
+            const secondChild = sidebar.children[1];
+            if (secondChild) {
+                const secondChildText = secondChild.textContent || '';
+                if (secondChildText.includes('keyboard_double_arrow_right') || 
+                    secondChildText.includes('keyboard_double')) {
+                    secondChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important;';
+                    secondChild.textContent = '';
+                    secondChild.innerHTML = '';
+                    try {
+                        secondChild.remove();
+                    } catch(e) {}
                 }
             }
             
@@ -445,13 +452,25 @@ def generate_custom_css():
        (où apparaît souvent "keyboard_double_arrow_right")
        ============================================ */
     
-    /* Masquer COMPLÈTEMENT les 3 premiers enfants de la sidebar (en haut à gauche) */
+    /* ============================================
+       SOLUTION ULTIME : MASQUER TOUT EN HAUT À GAUCHE DE LA SIDEBAR
+       ============================================ */
+    
+    /* Masquer TOUS les enfants directs de la sidebar (solution radicale) */
+    [data-testid="stSidebar"] > * {{
+        /* On va laisser le JS gérer, mais on prépare le terrain */
+    }}
+    
+    /* Masquer spécifiquement le premier élément et ses variantes */
     [data-testid="stSidebar"] > div:first-child,
     [data-testid="stSidebar"] > div:nth-child(1),
     [data-testid="stSidebar"] > div:first-of-type,
     [data-testid="stSidebar"] > :first-child,
     [data-testid="stSidebar"] > :nth-child(1),
-    /* Masquer aussi le 2ème et 3ème enfant au cas où */
+    [data-testid="stSidebar"] > section:first-child,
+    [data-testid="stSidebar"] > nav:first-child,
+    [data-testid="stSidebar"] > header:first-child,
+    /* Masquer aussi le 2ème et 3ème enfant */
     [data-testid="stSidebar"] > div:nth-child(2),
     [data-testid="stSidebar"] > :nth-child(2),
     [data-testid="stSidebar"] > div:nth-child(3),
@@ -465,22 +484,31 @@ def generate_custom_css():
         width: 0 !important;
         max-height: 0 !important;
         max-width: 0 !important;
+        min-height: 0 !important;
+        min-width: 0 !important;
         padding: 0 !important;
         margin: 0 !important;
+        border: none !important;
         overflow: hidden !important;
         position: absolute !important;
         left: -9999px !important;
         top: -9999px !important;
+        z-index: -9999 !important;
         pointer-events: none !important;
         user-select: none !important;
+        clip: rect(0, 0, 0, 0) !important;
+        clip-path: inset(100%) !important;
     }}
     
-    /* Masquer aussi TOUS les enfants des 3 premiers éléments */
+    /* Masquer TOUS les enfants et descendants des premiers éléments */
     [data-testid="stSidebar"] > div:first-child *,
     [data-testid="stSidebar"] > div:nth-child(1) *,
     [data-testid="stSidebar"] > div:first-of-type *,
     [data-testid="stSidebar"] > :first-child *,
     [data-testid="stSidebar"] > :nth-child(1) *,
+    [data-testid="stSidebar"] > section:first-child *,
+    [data-testid="stSidebar"] > nav:first-child *,
+    [data-testid="stSidebar"] > header:first-child *,
     [data-testid="stSidebar"] > div:nth-child(2) *,
     [data-testid="stSidebar"] > :nth-child(2) *,
     [data-testid="stSidebar"] > div:nth-child(3) *,
@@ -493,6 +521,12 @@ def generate_custom_css():
         width: 0 !important;
         overflow: hidden !important;
         pointer-events: none !important;
+        clip: rect(0, 0, 0, 0) !important;
+    }}
+    
+    /* Masquer aussi tout texte contenant "keyboard" dans la sidebar */
+    [data-testid="stSidebar"] * {{
+        /* On va utiliser JS pour filtrer, mais on prépare */
     }}
     
     /* Masquer les éléments avec classes/attributs keyboard */
