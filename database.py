@@ -21,15 +21,29 @@ class Database:
             self.db_url = "sqlite:///social_analytics.db"
         
         try:
-            self.engine = create_engine(self.db_url, echo=False)
-            # Détecter le type de base de données
-            self.is_sqlite = 'sqlite' in self.db_url.lower()
+            # Configuration spéciale pour SQLite
+            if 'sqlite' in (self.db_url or '').lower():
+                # SQLite nécessite connect_args pour activer les FOREIGN KEY
+                self.engine = create_engine(
+                    self.db_url, 
+                    echo=False,
+                    connect_args={"check_same_thread": False}
+                )
+                self.is_sqlite = True
+            else:
+                self.engine = create_engine(self.db_url, echo=False)
+                self.is_sqlite = False
+            
             self.init_database()
         except Exception as e:
             print(f"Erreur lors de la connexion à la base de données: {e}")
             # En cas d'échec, revenir à SQLite pour permettre à l'application de démarrer
             self.db_url = "sqlite:///social_analytics.db"
-            self.engine = create_engine(self.db_url, echo=False)
+            self.engine = create_engine(
+                self.db_url, 
+                echo=False,
+                connect_args={"check_same_thread": False}
+            )
             self.is_sqlite = True
             self.init_database()
 
@@ -38,7 +52,7 @@ class Database:
         try:
             with self.engine.connect() as connection:
                 if self.is_sqlite:
-                    # Syntaxe SQLite
+                    # Syntaxe SQLite (sans FOREIGN KEY pour éviter les problèmes de compatibilité)
                     # Table des utilisateurs
                     connection.execute(text("""
                         CREATE TABLE IF NOT EXISTS users (
@@ -67,8 +81,7 @@ class Database:
                             currency TEXT DEFAULT 'EUR',
                             stripe_payment_id TEXT,
                             status TEXT DEFAULT 'pending',
-                            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                            FOREIGN KEY (user_id) REFERENCES users (id)
+                            created_at TEXT DEFAULT CURRENT_TIMESTAMP
                         )
                     """))
                     
@@ -82,7 +95,6 @@ class Database:
                             results_json TEXT,
                             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                             updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                            FOREIGN KEY (user_id) REFERENCES users (id),
                             UNIQUE(user_id, project_name)
                         )
                     """))
@@ -103,8 +115,7 @@ class Database:
                             notifications_enabled INTEGER DEFAULT 1,
                             email_notifications INTEGER DEFAULT 1,
                             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                            FOREIGN KEY (user_id) REFERENCES users (id)
+                            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                         )
                     """))
                 else:
