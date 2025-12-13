@@ -255,41 +255,40 @@ st.markdown("""
             }
         });
         
-        // MÉTHODE 3: SOLUTION ULTIME - MASQUER SYSTÉMATIQUEMENT LE PREMIER ÉLÉMENT DE LA SIDEBAR
+        // MÉTHODE 3: SOLUTION ULTIME - MASQUER L'ÉLÉMENT EN HAUT À GAUCHE DE LA SIDEBAR
         const sidebar = document.querySelector('[data-testid="stSidebar"]');
         if (sidebar) {
-            // Masquer TOUJOURS le premier enfant, peu importe son contenu
-            const firstChild = sidebar.firstElementChild;
-            if (firstChild) {
-                // Appliquer tous les styles de masquage
-                firstChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; max-height: 0 !important; max-width: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important; user-select: none !important;';
-                
-                // Supprimer tout le texte
-                firstChild.textContent = '';
-                
-                // Masquer aussi tous les enfants
-                const firstChildChildren = firstChild.querySelectorAll('*');
-                firstChildChildren.forEach(function(child) {
-                    child.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important;';
-                    child.textContent = '';
-                });
-                
-                // Essayer de supprimer complètement du DOM
-                try {
-                    firstChild.remove();
-                } catch(e) {
-                    // Si la suppression échoue, on garde le masquage CSS
-                }
-            }
+            // Cibler TOUS les enfants en haut de la sidebar (généralement le premier ou les deux premiers)
+            const children = Array.from(sidebar.children);
             
-            // Aussi masquer le deuxième enfant si nécessaire (parfois le texte apparaît là)
-            const secondChild = sidebar.children[1];
-            if (secondChild) {
-                const secondChildText = secondChild.textContent || '';
-                if (secondChildText.includes('keyboard_double_arrow_right') || 
-                    secondChildText.includes('keyboard_double')) {
-                    secondChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important;';
-                    secondChild.textContent = '';
+            // Masquer les 3 premiers enfants (pour être sûr de couvrir tout)
+            for (let i = 0; i < Math.min(3, children.length); i++) {
+                const child = children[i];
+                if (child) {
+                    const childText = child.textContent || '';
+                    // Masquer si contient le texte OU si c'est le premier enfant (en haut à gauche)
+                    if (i === 0 || childText.includes('keyboard_double_arrow_right') || 
+                        childText.includes('keyboard_double')) {
+                        // Appliquer tous les styles de masquage
+                        child.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; max-height: 0 !important; max-width: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important; pointer-events: none !important; user-select: none !important;';
+                        
+                        // Supprimer tout le texte
+                        child.textContent = '';
+                        
+                        // Masquer aussi tous les enfants
+                        const childChildren = child.querySelectorAll('*');
+                        childChildren.forEach(function(grandChild) {
+                            grandChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important;';
+                            grandChild.textContent = '';
+                        });
+                        
+                        // Essayer de supprimer complètement du DOM
+                        try {
+                            child.remove();
+                        } catch(e) {
+                            // Si la suppression échoue, on garde le masquage CSS
+                        }
+                    }
                 }
             }
             
@@ -303,7 +302,7 @@ st.markdown("""
                     el.textContent = el.textContent.replace(/keyboard_double/g, '');
                     
                     // Masquer l'élément
-                    el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important;';
+                    el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important;';
                     
                     // Essayer de supprimer
                     try {
@@ -446,10 +445,17 @@ def generate_custom_css():
        (où apparaît souvent "keyboard_double_arrow_right")
        ============================================ */
     
-    /* Masquer COMPLÈTEMENT le premier enfant direct de la sidebar */
+    /* Masquer COMPLÈTEMENT les 3 premiers enfants de la sidebar (en haut à gauche) */
     [data-testid="stSidebar"] > div:first-child,
+    [data-testid="stSidebar"] > div:nth-child(1),
     [data-testid="stSidebar"] > div:first-of-type,
-    [data-testid="stSidebar"] > :first-child {{
+    [data-testid="stSidebar"] > :first-child,
+    [data-testid="stSidebar"] > :nth-child(1),
+    /* Masquer aussi le 2ème et 3ème enfant au cas où */
+    [data-testid="stSidebar"] > div:nth-child(2),
+    [data-testid="stSidebar"] > :nth-child(2),
+    [data-testid="stSidebar"] > div:nth-child(3),
+    [data-testid="stSidebar"] > :nth-child(3) {{
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -464,14 +470,21 @@ def generate_custom_css():
         overflow: hidden !important;
         position: absolute !important;
         left: -9999px !important;
+        top: -9999px !important;
         pointer-events: none !important;
         user-select: none !important;
     }}
     
-    /* Masquer aussi les enfants du premier élément */
+    /* Masquer aussi TOUS les enfants des 3 premiers éléments */
     [data-testid="stSidebar"] > div:first-child *,
+    [data-testid="stSidebar"] > div:nth-child(1) *,
     [data-testid="stSidebar"] > div:first-of-type *,
-    [data-testid="stSidebar"] > :first-child * {{
+    [data-testid="stSidebar"] > :first-child *,
+    [data-testid="stSidebar"] > :nth-child(1) *,
+    [data-testid="stSidebar"] > div:nth-child(2) *,
+    [data-testid="stSidebar"] > :nth-child(2) *,
+    [data-testid="stSidebar"] > div:nth-child(3) *,
+    [data-testid="stSidebar"] > :nth-child(3) * {{
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
