@@ -100,51 +100,44 @@ st.markdown("""
 st.markdown("""
 <script>
 (function() {
-    // Fonction pour masquer les éléments GitHub
+    // Fonction pour masquer les éléments GitHub - VERSION AGRESSIVE
     function hideGitHubElements() {
-        // Masquer tous les footers
+        // Masquer tous les footers avec tous les styles possibles
         const footers = document.querySelectorAll('footer, [data-testid="stFooter"], [role="contentinfo"]');
         footers.forEach(function(footer) {
-            footer.style.display = 'none';
-            footer.style.visibility = 'hidden';
-            footer.style.opacity = '0';
-            footer.style.height = '0';
-            footer.style.width = '0';
-            footer.style.overflow = 'hidden';
-            footer.style.position = 'absolute';
-            footer.style.left = '-9999px';
+            footer.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; max-height: 0 !important; max-width: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important; z-index: -9999 !important; pointer-events: none !important;';
+            // Essayer de supprimer complètement
+            try {
+                footer.remove();
+            } catch(e) {}
         });
         
         // Masquer tous les liens GitHub
-        const githubLinks = document.querySelectorAll('a[href*="github"], a[href*="GitHub"]');
+        const githubLinks = document.querySelectorAll('a[href*="github"], a[href*="GitHub"], a[href*="streamlit.io"]');
         githubLinks.forEach(function(link) {
-            link.style.display = 'none';
-            link.style.visibility = 'hidden';
-            link.style.opacity = '0';
-            link.style.height = '0';
-            link.style.width = '0';
-            link.style.overflow = 'hidden';
-            link.style.position = 'absolute';
-            link.style.left = '-9999px';
+            link.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important;';
+            try {
+                link.remove();
+            } catch(e) {}
         });
         
         // Masquer tous les iframes GitHub
-        const githubIframes = document.querySelectorAll('iframe[title*="github"], iframe[title*="GitHub"]');
+        const githubIframes = document.querySelectorAll('iframe[title*="github"], iframe[title*="GitHub"], iframe[src*="github"]');
         githubIframes.forEach(function(iframe) {
-            iframe.style.display = 'none';
-            iframe.style.visibility = 'hidden';
-            iframe.style.opacity = '0';
-            iframe.style.height = '0';
-            iframe.style.width = '0';
-            iframe.style.overflow = 'hidden';
+            iframe.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important;';
+            try {
+                iframe.remove();
+            } catch(e) {}
         });
         
-        // Masquer les éléments avec texte GitHub
+        // Masquer les éléments avec texte GitHub ou Streamlit
         const allElements = document.querySelectorAll('*');
         allElements.forEach(function(el) {
-            if (el.textContent && (el.textContent.includes('GitHub') || 
-                el.textContent.includes('github') ||
-                el.textContent.includes('Made with Streamlit'))) {
+            const elText = el.textContent || '';
+            if (elText.includes('GitHub') || 
+                elText.includes('github') ||
+                elText.includes('Made with Streamlit') ||
+                elText.includes('streamlit')) {
                 // Vérifier si c'est dans un footer ou un lien
                 let parent = el;
                 let isInFooter = false;
@@ -152,19 +145,17 @@ st.markdown("""
                     if (parent.tagName === 'FOOTER' || 
                         parent.getAttribute('data-testid') === 'stFooter' ||
                         parent.getAttribute('role') === 'contentinfo' ||
-                        (parent.tagName === 'A' && parent.href && parent.href.includes('github'))) {
+                        (parent.tagName === 'A' && parent.href && (parent.href.includes('github') || parent.href.includes('streamlit')))) {
                         isInFooter = true;
                         break;
                     }
                     parent = parent.parentElement;
                 }
                 if (isInFooter) {
-                    el.style.display = 'none';
-                    el.style.visibility = 'hidden';
-                    el.style.opacity = '0';
-                    el.style.height = '0';
-                    el.style.width = '0';
-                    el.style.overflow = 'hidden';
+                    el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important;';
+                    try {
+                        el.remove();
+                    } catch(e) {}
                 }
             }
         });
@@ -184,20 +175,41 @@ st.markdown("""
         setInterval(hideGitHubElements, 200);
     }
     
-    // Exécuter avec des délais
-    [100, 200, 500, 1000, 2000, 3000].forEach(function(delay) {
+    // Exécuter avec des délais multiples et fréquents
+    [50, 100, 200, 300, 500, 750, 1000, 1500, 2000, 3000, 5000].forEach(function(delay) {
         setTimeout(hideGitHubElements, delay);
     });
     
-    // Observer les changements du DOM pour GitHub
+    // Observer TOUS les changements du DOM pour GitHub avec réaction immédiate
     const githubObserver = new MutationObserver(function(mutations) {
         hideGitHubElements();
     });
     githubObserver.observe(document.body, {
         childList: true,
         subtree: true,
-        attributes: true
+        attributes: true,
+        attributeOldValue: true,
+        characterData: true
     });
+    
+    // Exécuter en continu toutes les 100ms pendant 30 secondes
+    let githubCount = 0;
+    const githubInterval = setInterval(function() {
+        hideGitHubElements();
+        githubCount++;
+        if (githubCount > 300) { // 30 secondes (300 * 100ms)
+            clearInterval(githubInterval);
+        }
+    }, 100);
+    
+    // Exécuter aussi après un délai plus long pour les éléments chargés très tardivement
+    setTimeout(function() {
+        const longGithubInterval = setInterval(hideGitHubElements, 500);
+        // Arrêter après 5 minutes
+        setTimeout(function() {
+            clearInterval(longGithubInterval);
+        }, 300000); // 5 minutes
+    }, 10000); // Démarrer après 10 secondes
     
     // Fonction pour SUPPRIMER COMPLÈTEMENT le texte "keyboard_double_arrow_right"
     function hideKeyboardDoubleArrow() {
