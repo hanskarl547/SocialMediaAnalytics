@@ -253,21 +253,55 @@ st.markdown("""
             }
         });
         
-        // MÉTHODE 2: Remplacer le texte par une icône emoji dans tous les éléments
+        // MÉTHODE 2: Remplacer les éléments contenant le texte par un emoji
         const allElements = document.querySelectorAll('*');
         allElements.forEach(function(el) {
-            if (el.textContent && (el.textContent.includes('keyboard_double_arrow_right') || 
-                el.textContent.includes('keyboard_double'))) {
-                // Remplacer le texte par une icône emoji simple
-                el.textContent = el.textContent.replace(/keyboard_double_arrow_right/g, '➡️');
-                el.textContent = el.textContent.replace(/keyboard_double/g, '➡️');
+            const elText = el.textContent || '';
+            if (elText.includes('keyboard_double_arrow_right') || 
+                elText.includes('keyboard_double')) {
+                // Vérifier si c'est dans la sidebar (pour éviter de casser autre chose)
+                const isInSidebar = el.closest('[data-testid="stSidebar"]');
+                if (isInSidebar || elText.trim() === 'keyboard_double_arrow_right' || elText.trim().includes('keyboard_double_arrow_right')) {
+                    // Remplacer tout le contenu par l'emoji
+                    el.textContent = '➡️';
+                    el.innerHTML = '➡️';
+                    // S'assurer que l'élément est visible
+                    el.style.display = '';
+                    el.style.visibility = '';
+                    el.style.opacity = '';
+                    el.style.fontSize = '24px';
+                    el.style.color = '';
+                }
             }
         });
         
-        // MÉTHODE 3: REMPLACER LE TEXTE PAR UNE ICÔNE EMOJI SIMPLE (solution simple et sûre)
+        // MÉTHODE 3: REMPLACER COMPLÈTEMENT LE CONTENU PAR UN EMOJI (dans la sidebar)
         const sidebar = document.querySelector('[data-testid="stSidebar"]');
         if (sidebar) {
-            // Parcourir tous les nœuds texte dans la sidebar
+            // Parcourir tous les éléments de la sidebar
+            const sidebarElements = sidebar.querySelectorAll('*');
+            sidebarElements.forEach(function(el) {
+                const elText = el.textContent || '';
+                if (elText.includes('keyboard_double_arrow_right') || 
+                    elText.includes('keyboard_double')) {
+                    // Remplacer complètement le contenu par l'emoji
+                    el.textContent = '➡️';
+                    el.innerHTML = '➡️';
+                    // S'assurer que l'élément est visible et stylé correctement
+                    el.style.display = '';
+                    el.style.visibility = '';
+                    el.style.opacity = '';
+                    el.style.fontSize = '24px';
+                    el.style.color = '';
+                    el.style.height = '';
+                    el.style.width = '';
+                    el.style.overflow = '';
+                    el.style.position = '';
+                    el.style.left = '';
+                }
+            });
+            
+            // Parcourir aussi les nœuds texte directement pour les remplacer
             const walker = document.createTreeWalker(
                 sidebar,
                 NodeFilter.SHOW_TEXT,
@@ -279,42 +313,20 @@ st.markdown("""
             while (node = walker.nextNode()) {
                 if (node.textContent && (node.textContent.includes('keyboard_double_arrow_right') || 
                     node.textContent.includes('keyboard_double'))) {
-                    // Remplacer le texte par une icône emoji simple qui s'affichera toujours
-                    node.textContent = node.textContent.replace(/keyboard_double_arrow_right/g, '➡️');
-                    node.textContent = node.textContent.replace(/keyboard_double/g, '➡️');
+                    // Remplacer le texte directement par l'emoji
+                    node.textContent = '➡️';
                     
-                    // S'assurer que l'élément parent est visible
+                    // S'assurer que le parent est visible
                     const parent = node.parentElement;
                     if (parent) {
-                        parent.style.color = '';
-                        parent.style.fontSize = '';
-                        parent.style.lineHeight = '';
-                        parent.style.opacity = '';
+                        parent.style.display = '';
                         parent.style.visibility = '';
-                        parent.style.height = '';
-                        parent.style.overflow = '';
+                        parent.style.opacity = '';
+                        parent.style.fontSize = '24px';
+                        parent.style.color = '';
                     }
                 }
             }
-            
-            // Aussi parcourir les éléments pour remplacer le texte
-            const sidebarElements = sidebar.querySelectorAll('*');
-            sidebarElements.forEach(function(el) {
-                const elText = el.textContent || '';
-                if (elText.includes('keyboard_double_arrow_right') || 
-                    elText.includes('keyboard_double')) {
-                    // Remplacer le texte par l'emoji
-                    el.textContent = elText.replace(/keyboard_double_arrow_right/g, '➡️');
-                    el.textContent = el.textContent.replace(/keyboard_double/g, '➡️');
-                    
-                    // Rendre l'élément visible
-                    el.style.color = '';
-                    el.style.fontSize = '';
-                    el.style.lineHeight = '';
-                    el.style.opacity = '';
-                    el.style.visibility = '';
-                }
-            });
         }
     }
     
