@@ -136,7 +136,15 @@ def generate_custom_css():
     /* Masquer le texte "keyboard_double_arrow_right" et autres icônes Material non rendues */
     [class*="keyboard_double"], 
     [class*="material-icons"],
-    [data-testid*="keyboard"] {{
+    [data-testid*="keyboard"],
+    /* Masquer les éléments avec des classes contenant keyboard */
+    [class*="keyboard"],
+    /* Masquer dans la sidebar Streamlit - cibler tous les éléments potentiels */
+    [data-testid="stSidebar"] [class*="keyboard"],
+    [data-testid="stSidebar"] [class*="material"],
+    /* Masquer les éléments avec des attributs contenant keyboard */
+    [id*="keyboard"],
+    [aria-label*="keyboard"] {{
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -145,6 +153,14 @@ def generate_custom_css():
         height: 0 !important;
         width: 0 !important;
         overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+    }}
+    
+    /* Masquer les éléments dans la sidebar qui pourraient contenir ce texte */
+    [data-testid="stSidebar"] > div:first-child,
+    [data-testid="stSidebar"] > div:first-child > * {{
+        /* On laisse le JavaScript gérer le contenu textuel */
     }}
     
     
@@ -1586,6 +1602,92 @@ def main_app():
     """Application principale après connexion"""
     # Appliquer les préférences utilisateur
     apply_user_preferences()
+    
+    # Script JavaScript pour masquer le texte "keyboard_double_arrow_right"
+    st.markdown("""
+    <script>
+    (function() {
+        function hideKeyboardDoubleArrow() {
+            // Chercher tous les éléments qui contiennent ce texte
+            const walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let node;
+            while (node = walker.nextNode()) {
+                if (node.textContent.includes('keyboard_double_arrow_right') || 
+                    node.textContent.includes('keyboard_double')) {
+                    // Masquer l'élément parent
+                    if (node.parentElement) {
+                        node.parentElement.style.display = 'none';
+                        node.parentElement.style.visibility = 'hidden';
+                        node.parentElement.style.opacity = '0';
+                        node.parentElement.style.fontSize = '0';
+                        node.parentElement.style.height = '0';
+                        node.parentElement.style.width = '0';
+                        node.parentElement.style.overflow = 'hidden';
+                        node.parentElement.style.position = 'absolute';
+                        node.parentElement.style.left = '-9999px';
+                    }
+                }
+            }
+            
+            // Chercher aussi dans la sidebar spécifiquement
+            const sidebar = document.querySelector('[data-testid="stSidebar"]');
+            if (sidebar) {
+                const sidebarWalker = document.createTreeWalker(
+                    sidebar,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
+                
+                let sidebarNode;
+                while (sidebarNode = sidebarWalker.nextNode()) {
+                    if (sidebarNode.textContent.includes('keyboard_double_arrow_right') || 
+                        sidebarNode.textContent.includes('keyboard_double')) {
+                        if (sidebarNode.parentElement) {
+                            sidebarNode.parentElement.style.display = 'none';
+                            sidebarNode.parentElement.style.visibility = 'hidden';
+                            sidebarNode.parentElement.style.opacity = '0';
+                            sidebarNode.parentElement.style.fontSize = '0';
+                            sidebarNode.parentElement.style.height = '0';
+                            sidebarNode.parentElement.style.width = '0';
+                            sidebarNode.parentElement.style.overflow = 'hidden';
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Exécuter immédiatement
+        hideKeyboardDoubleArrow();
+        
+        // Exécuter après le chargement de la page
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', hideKeyboardDoubleArrow);
+        } else {
+            hideKeyboardDoubleArrow();
+        }
+        
+        // Exécuter après un court délai pour les éléments chargés dynamiquement
+        setTimeout(hideKeyboardDoubleArrow, 100);
+        setTimeout(hideKeyboardDoubleArrow, 500);
+        setTimeout(hideKeyboardDoubleArrow, 1000);
+        setTimeout(hideKeyboardDoubleArrow, 2000);
+        
+        // Observer les changements du DOM
+        const observer = new MutationObserver(hideKeyboardDoubleArrow);
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    })();
+    </script>
+    """, unsafe_allow_html=True)
     
     # Sidebar
     with st.sidebar:
