@@ -1,503 +1,346 @@
 """
-Module de gestion de la base de données
-Gère les utilisateurs, les abonnements et les sauvegardes
+Module de gestion de la base de données MySQL/TiDB
+Gère les utilisateurs, les abonnements et les sauvegardes de manière persistante.
 """
 
-import sqlite3
-import hashlib
+import os
 import json
 from datetime import datetime, timedelta
-import os
+import hashlib
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
+
+load_dotenv()
 
 class Database:
-    def __init__(self, db_name="social_analytics.db"):
-        self.db_name = db_name
-        self.init_database()
-    
-    def get_connection(self):
-        """Crée une connexion à la base de données"""
-        conn = sqlite3.connect(self.db_name)
-        conn.row_factory = sqlite3.Row
-        return conn
-    
+    def __init__(self):
+        self.db_url = os.getenv('DATABASE_URL')
+        if not self.db_url:
+            # Fallback pour le mode démo ou si l'utilisateur n'a pas configuré
+            print("ATTENTION: DATABASE_URL non configurée. Utilisation d'une base de données en mémoire (non persistante).")
+            self.db_url = "sqlite:///:memory:"
+        
+        try:
+            self.engine = create_engine(self.db_url)
+            self.init_database()
+        except Exception as e:
+            print(f"Erreur lors de la connexion à la base de données: {e}")
+            # En cas d'échec, revenir à SQLite en mémoire pour permettre à l'application de démarrer
+            self.db_url = "sqlite:///:memory:"
+            self.engine = create_engine(self.db_url)
+            self.init_database()
+
     def init_database(self):
         """Initialise les tables de la base de données"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Table des utilisateurs
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                first_name TEXT,
-                last_name TEXT,
-                company TEXT,
-                phone TEXT,
-                job_title TEXT,
-                bio TEXT,
-                is_premium BOOLEAN DEFAULT 0,
-                premium_expires TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login TIMESTAMP
-            )
-        ''')
-        
-        # Ajouter les nouvelles colonnes si elles n'existent pas (migration)
         try:
-            cursor.execute('ALTER TABLE users ADD COLUMN first_name TEXT')
-        except:
-            pass
-        try:
-            cursor.execute('ALTER TABLE users ADD COLUMN last_name TEXT')
-        except:
-            pass
-        try:
-            cursor.execute('ALTER TABLE users ADD COLUMN company TEXT')
-        except:
-            pass
-        try:
-            cursor.execute('ALTER TABLE users ADD COLUMN phone TEXT')
-        except:
-            pass
-        try:
-            cursor.execute('ALTER TABLE users ADD COLUMN job_title TEXT')
-        except:
-            pass
-        try:
-            cursor.execute('ALTER TABLE users ADD COLUMN bio TEXT')
-        except:
-            pass
-        
-        # Table des paiements
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS payments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                amount REAL NOT NULL,
-                currency TEXT DEFAULT 'EUR',
-                stripe_payment_id TEXT,
-                status TEXT DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        # Table des sauvegardes de travaux
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS saved_projects (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                project_name TEXT NOT NULL,
-                data_json TEXT NOT NULL,
-                results_json TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        # Table des préférences utilisateur
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS user_preferences (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER UNIQUE NOT NULL,
-                theme TEXT DEFAULT 'light',
-                primary_color TEXT DEFAULT '#667eea',
-                secondary_color TEXT DEFAULT '#764ba2',
-                accent_color TEXT DEFAULT '#f093fb',
-                text_color TEXT DEFAULT '#1f2937',
-                background_color TEXT DEFAULT '#ffffff',
-                font_family TEXT DEFAULT 'Arial',
-                language TEXT DEFAULT 'fr',
-                notifications_enabled BOOLEAN DEFAULT 1,
-                email_notifications BOOLEAN DEFAULT 1,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        # Migration: Ajouter font_family si la colonne n'existe pas
-        try:
-            cursor.execute('ALTER TABLE user_preferences ADD COLUMN font_family TEXT DEFAULT "Arial"')
-            conn.commit()
-        except:
-            pass  # La colonne existe déjà
-        
-        # Migration: Supprimer font_size si elle existe (on ne la supprime pas pour éviter de perdre des données)
-        
-        conn.commit()
-        conn.close()
-    
+            with self.engine.connect() as connection:
+                # Table des utilisateurs
+                connection.execute(text("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        first_name VARCHAR(255),
+                        last_name VARCHAR(255),
+                        company VARCHAR(255),
+                        phone VARCHAR(255),
+                        job_title VARCHAR(255),
+                        bio TEXT,
+                        is_premium BOOLEAN DEFAULT FALSE,
+                        premium_expires DATETIME,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        last_login DATETIME
+                    )
+                """))
+                
+                # Table des paiements
+                connection.execute(text("""
+                    CREATE TABLE IF NOT EXISTS payments (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT NOT NULL,
+                        amount DECIMAL(10, 2) NOT NULL,
+                        currency VARCHAR(10) DEFAULT 'EUR',
+                        stripe_payment_id VARCHAR(255),
+                        status VARCHAR(50) DEFAULT 'pending',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users (id)
+                    )
+                """))
+                
+                # Table des sauvegardes de travaux
+                connection.execute(text("""
+                    CREATE TABLE IF NOT EXISTS saved_projects (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT NOT NULL,
+                        project_name VARCHAR(255) NOT NULL,
+                        data_json JSON NOT NULL,
+                        results_json JSON,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users (id),
+                        UNIQUE KEY unique_project (user_id, project_name)
+                    )
+                """))
+                
+                # Table des préférences utilisateur
+                connection.execute(text("""
+                    CREATE TABLE IF NOT EXISTS user_preferences (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT UNIQUE NOT NULL,
+                        theme VARCHAR(50) DEFAULT 'light',
+                        primary_color VARCHAR(50) DEFAULT '#667eea',
+                        secondary_color VARCHAR(50) DEFAULT '#764ba2',
+                        accent_color VARCHAR(50) DEFAULT '#f093fb',
+                        text_color VARCHAR(50) DEFAULT '#1f2937',
+                        background_color VARCHAR(50) DEFAULT '#ffffff',
+                        font_family VARCHAR(50) DEFAULT 'Arial',
+                        language VARCHAR(10) DEFAULT 'fr',
+                        notifications_enabled BOOLEAN DEFAULT TRUE,
+                        email_notifications BOOLEAN DEFAULT TRUE,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users (id)
+                    )
+                """))
+                connection.commit()
+        except SQLAlchemyError as e:
+            print(f"Erreur lors de l'initialisation de la base de données: {e}")
+            # En cas d'erreur d'initialisation, l'application ne peut pas continuer
+            raise
+
     def hash_password(self, password):
         """Hash le mot de passe avec SHA-256"""
         return hashlib.sha256(password.encode()).hexdigest()
-    
+
     def create_user(self, email, password, first_name=None, last_name=None, 
                    company=None, phone=None, job_title=None, bio=None):
         """Crée un nouvel utilisateur"""
         try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
             password_hash = self.hash_password(password)
-            
-            cursor.execute('''
-                INSERT INTO users (email, password_hash, first_name, last_name, 
-                                 company, phone, job_title, bio)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (email, password_hash, first_name, last_name, 
-                  company, phone, job_title, bio))
-            
-            conn.commit()
-            user_id = cursor.lastrowid
-            
-            # Créer les préférences par défaut
-            cursor.execute('''
-                INSERT INTO user_preferences (user_id)
-                VALUES (?)
-            ''', (user_id,))
-            conn.commit()
-            
-            conn.close()
-            return True, "Compte créé avec succès!"
-        except sqlite3.IntegrityError:
-            return False, "Cet email est déjà utilisé."
-        except Exception as e:
+            with self.engine.connect() as connection:
+                result = connection.execute(text("""
+                    INSERT INTO users (email, password_hash, first_name, last_name, 
+                                     company, phone, job_title, bio)
+                    VALUES (:email, :password_hash, :first_name, :last_name, 
+                            :company, :phone, :job_title, :bio)
+                """), {
+                    'email': email,
+                    'password_hash': password_hash,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'company': company,
+                    'phone': phone,
+                    'job_title': job_title,
+                    'bio': bio
+                })
+                
+                user_id = result.lastrowid
+                
+                # Créer les préférences par défaut
+                connection.execute(text("""
+                    INSERT INTO user_preferences (user_id)
+                    VALUES (:user_id)
+                """), {'user_id': user_id})
+                
+                connection.commit()
+                return True, "Compte créé avec succès!"
+        except SQLAlchemyError as e:
+            if "Duplicate entry" in str(e) or "UNIQUE constraint failed" in str(e):
+                return False, "Cet email est déjà utilisé."
             return False, f"Erreur: {str(e)}"
-    
+
     def authenticate_user(self, email, password):
         """Authentifie un utilisateur"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
         password_hash = self.hash_password(password)
-        
-        cursor.execute('''
-            SELECT * FROM users
-            WHERE email = ? AND password_hash = ?
-        ''', (email, password_hash))
-        
-        user = cursor.fetchone()
-        
-        if user:
-            # Mise à jour du dernier login
-            cursor.execute('''
-                UPDATE users
-                SET last_login = CURRENT_TIMESTAMP
-                WHERE id = ?
-            ''', (user['id'],))
-            conn.commit()
-        
-        conn.close()
-        return dict(user) if user else None
-    
+        with self.engine.connect() as connection:
+            result = connection.execute(text("""
+                SELECT * FROM users
+                WHERE email = :email AND password_hash = :password_hash
+            """), {'email': email, 'password_hash': password_hash})
+            
+            user = result.fetchone()
+            
+            if user:
+                # Mise à jour du dernier login
+                connection.execute(text("""
+                    UPDATE users
+                    SET last_login = NOW()
+                    WHERE id = :id
+                """), {'id': user[0]}) # user[0] est l'ID
+                connection.commit()
+                
+                # Convertir le résultat en dictionnaire pour la compatibilité
+                return dict(user._mapping)
+            
+            return None
+
     def check_premium_status(self, user_id):
         """Vérifie si l'utilisateur a un abonnement premium actif"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT is_premium, premium_expires
-            FROM users
-            WHERE id = ?
-        ''', (user_id,))
-        
-        result = cursor.fetchone()
-        conn.close()
-        
-        if not result or not result['is_premium']:
-            return False
-        
-        # Vérifier si l'abonnement n'a pas expiré
-        if result['premium_expires']:
-            expiry = datetime.strptime(result['premium_expires'], '%Y-%m-%d %H:%M:%S')
-            if expiry < datetime.now():
-                self.update_premium_status(user_id, False)
+        with self.engine.connect() as connection:
+            result = connection.execute(text("""
+                SELECT is_premium, premium_expires
+                FROM users
+                WHERE id = :user_id
+            """), {'user_id': user_id})
+            
+            user = result.fetchone()
+            
+            if not user or not user[0]: # user[0] est is_premium
                 return False
-        
-        return True
-    
+            
+            # Vérifier si l'abonnement n'a pas expiré
+            if user[1]: # user[1] est premium_expires
+                expiry = user[1]
+                if isinstance(expiry, str):
+                    expiry = datetime.strptime(expiry, '%Y-%m-%d %H:%M:%S')
+                
+                if expiry < datetime.now():
+                    self.update_premium_status(user_id, False)
+                    return False
+            
+            return True
+
     def update_premium_status(self, user_id, is_premium, duration_days=30):
         """Met à jour le statut premium d'un utilisateur"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
+        with self.engine.connect() as connection:
+            if is_premium:
+                expiry = datetime.now() + timedelta(days=duration_days)
+                connection.execute(text("""
+                    UPDATE users
+                    SET is_premium = TRUE, premium_expires = :expiry
+                    WHERE id = :user_id
+                """), {'expiry': expiry.strftime('%Y-%m-%d %H:%M:%S'), 'user_id': user_id})
+            else:
+                connection.execute(text("""
+                    UPDATE users
+                    SET is_premium = FALSE, premium_expires = NULL
+                    WHERE id = :user_id
+                """), {'user_id': user_id})
+            connection.commit()
+
+    def record_payment(self, user_id, amount, stripe_payment_id, status='completed'):
+        """Enregistre un paiement"""
+        with self.engine.connect() as connection:
+            connection.execute(text("""
+                INSERT INTO payments (user_id, amount, stripe_payment_id, status)
+                VALUES (:user_id, :amount, :stripe_payment_id, :status)
+            """), {
+                'user_id': user_id,
+                'amount': amount,
+                'stripe_payment_id': stripe_payment_id,
+                'status': status
+            })
+            connection.commit()
+
+    def get_user_preferences(self, user_id):
+        """Récupère les préférences utilisateur"""
+        with self.engine.connect() as connection:
+            result = connection.execute(text("""
+                SELECT * FROM user_preferences
+                WHERE user_id = :user_id
+            """), {'user_id': user_id})
+            
+            prefs = result.fetchone()
+            return dict(prefs._mapping) if prefs else None
+
+    def update_user_preferences(self, user_id, preferences):
+        """Met à jour les préférences utilisateur"""
+        # Construction dynamique de la requête UPDATE
+        set_clauses = [f"{key} = :{key}" for key in preferences.keys()]
+        query = f"UPDATE user_preferences SET {', '.join(set_clauses)}, updated_at = NOW() WHERE user_id = :user_id"
         
-        if is_premium:
-            expiry = datetime.now() + timedelta(days=duration_days)
-            cursor.execute('''
-                UPDATE users
-                SET is_premium = 1, premium_expires = ?
-                WHERE id = ?
-            ''', (expiry.strftime('%Y-%m-%d %H:%M:%S'), user_id))
-        else:
-            cursor.execute('''
-                UPDATE users
-                SET is_premium = 0
-                WHERE id = ?
-            ''', (user_id,))
+        params = preferences
+        params['user_id'] = user_id
         
-        conn.commit()
-        conn.close()
-    
+        with self.engine.connect() as connection:
+            connection.execute(text(query), params)
+            connection.commit()
+
     def save_project(self, user_id, project_name, data_dict, results_dict=None):
         """Sauvegarde un projet pour un utilisateur"""
         try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
+            data_json = json.dumps(data_dict, default=str)
+            results_json = json.dumps(results_dict, default=str) if results_dict else None
             
-            # Vérifier que data_dict n'est pas None ou vide
-            if not data_dict:
-                conn.close()
-                return False
-            
-            # Convertir en JSON avec gestion d'erreurs
-            try:
-                data_json = json.dumps(data_dict, default=str, ensure_ascii=False)
-            except (TypeError, ValueError) as e:
-                print(f"Erreur lors de la sérialisation des données: {e}")
-                conn.close()
-                return False
-            
-            try:
-                results_json = json.dumps(results_dict, default=str, ensure_ascii=False) if results_dict else None
-            except (TypeError, ValueError) as e:
-                print(f"Erreur lors de la sérialisation des résultats: {e}")
-                results_json = None
-            
-            # Vérifier si un projet avec ce nom existe déjà
-            cursor.execute('''
-                SELECT id FROM saved_projects
-                WHERE user_id = ? AND project_name = ?
-            ''', (user_id, project_name))
-            
-            existing = cursor.fetchone()
-            
-            if existing:
-                # Mise à jour
-                cursor.execute('''
+            with self.engine.connect() as connection:
+                # Utiliser INSERT OR REPLACE pour gérer l'upsert (mise à jour ou insertion)
+                # Note: La syntaxe exacte dépend du dialecte SQL (MySQL, TiDB, etc.)
+                # Pour une compatibilité maximale, on tente un UPDATE puis un INSERT
+                
+                # 1. Tenter la mise à jour
+                update_result = connection.execute(text("""
                     UPDATE saved_projects
-                    SET data_json = ?, results_json = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                ''', (data_json, results_json, existing['id']))
-            else:
-                # Nouvelle sauvegarde
-                cursor.execute('''
-                    INSERT INTO saved_projects (user_id, project_name, data_json, results_json)
-                    VALUES (?, ?, ?, ?)
-                ''', (user_id, project_name, data_json, results_json))
-            
-            conn.commit()
-            conn.close()
-            return True
-        except Exception as e:
+                    SET data_json = :data_json, results_json = :results_json, updated_at = NOW()
+                    WHERE user_id = :user_id AND project_name = :project_name
+                """), {
+                    'user_id': user_id,
+                    'project_name': project_name,
+                    'data_json': data_json,
+                    'results_json': results_json
+                })
+                
+                if update_result.rowcount == 0:
+                    # 2. Si aucune ligne n'a été mise à jour, effectuer l'insertion
+                    connection.execute(text("""
+                        INSERT INTO saved_projects (user_id, project_name, data_json, results_json)
+                        VALUES (:user_id, :project_name, :data_json, :results_json)
+                    """), {
+                        'user_id': user_id,
+                        'project_name': project_name,
+                        'data_json': data_json,
+                        'results_json': results_json
+                    })
+                
+                connection.commit()
+                return True
+        except SQLAlchemyError as e:
             print(f"Erreur lors de la sauvegarde du projet: {e}")
-            import traceback
-            traceback.print_exc()
-            try:
-                conn.close()
-            except:
-                pass
             return False
-    
-    def load_project(self, user_id, project_name):
-        """Charge un projet sauvegardé"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT * FROM saved_projects
-            WHERE user_id = ? AND project_name = ?
-        ''', (user_id, project_name))
-        
-        project = cursor.fetchone()
-        conn.close()
-        
-        if project:
-            return {
-                'data': json.loads(project['data_json']),
-                'results': json.loads(project['results_json']) if project['results_json'] else None,
-                'created_at': project['created_at'],
-                'updated_at': project['updated_at']
-            }
-        return None
-    
-    def get_user_projects(self, user_id):
-        """Récupère tous les projets d'un utilisateur"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, project_name, created_at, updated_at
-            FROM saved_projects
-            WHERE user_id = ?
-            ORDER BY updated_at DESC
-        ''', (user_id,))
-        
-        projects = cursor.fetchall()
-        conn.close()
-        
-        return [dict(p) for p in projects]
-    
-    def delete_project(self, user_id, project_id):
-        """Supprime un projet"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Vérifier que le projet appartient à l'utilisateur
-        cursor.execute('''
-            SELECT id FROM saved_projects
-            WHERE id = ? AND user_id = ?
-        ''', (project_id, user_id))
-        
-        project = cursor.fetchone()
-        
-        if project:
-            cursor.execute('''
-                DELETE FROM saved_projects
-                WHERE id = ? AND user_id = ?
-            ''', (project_id, user_id))
-            conn.commit()
-            conn.close()
-            return True
-        else:
-            conn.close()
-            return False
-    
-    def record_payment(self, user_id, amount, stripe_payment_id, status='completed'):
-        """Enregistre un paiement"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO payments (user_id, amount, stripe_payment_id, status)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, amount, stripe_payment_id, status))
-        
-        conn.commit()
-        conn.close()
-    
-    def update_user_profile(self, user_id, first_name=None, last_name=None,
-                           company=None, phone=None, job_title=None, bio=None):
-        """Met à jour le profil d'un utilisateur"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        updates = []
-        values = []
-        
-        if first_name is not None:
-            updates.append('first_name = ?')
-            values.append(first_name)
-        if last_name is not None:
-            updates.append('last_name = ?')
-            values.append(last_name)
-        if company is not None:
-            updates.append('company = ?')
-            values.append(company)
-        if phone is not None:
-            updates.append('phone = ?')
-            values.append(phone)
-        if job_title is not None:
-            updates.append('job_title = ?')
-            values.append(job_title)
-        if bio is not None:
-            updates.append('bio = ?')
-            values.append(bio)
-        
-        if updates:
-            values.append(user_id)
-            cursor.execute(f'''
-                UPDATE users
-                SET {', '.join(updates)}
-                WHERE id = ?
-            ''', values)
-            conn.commit()
-        
-        conn.close()
-        return True
-    
-    def get_user_profile(self, user_id):
-        """Récupère le profil complet d'un utilisateur"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, email, first_name, last_name, company, phone, 
-                   job_title, bio, is_premium, premium_expires, 
-                   created_at, last_login
-            FROM users
-            WHERE id = ?
-        ''', (user_id,))
-        
-        user = cursor.fetchone()
-        conn.close()
-        
-        if user:
-            # Convertir en dictionnaire et s'assurer que toutes les valeurs sont présentes
-            profile_dict = dict(user)
-            # S'assurer que les valeurs None sont bien None et non des chaînes vides
-            for key in ['first_name', 'last_name', 'company', 'phone', 'job_title', 'bio']:
-                if key in profile_dict and profile_dict[key] == '':
-                    profile_dict[key] = None
-            return profile_dict
-        return None
-    
-    def get_user_preferences(self, user_id):
-        """Récupère les préférences d'un utilisateur"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT * FROM user_preferences
-            WHERE user_id = ?
-        ''', (user_id,))
-        
-        prefs = cursor.fetchone()
-        
-        if not prefs:
-            # Créer des préférences par défaut
-            cursor.execute('''
-                INSERT INTO user_preferences (user_id)
-                VALUES (?)
-            ''', (user_id,))
-            conn.commit()
-            cursor.execute('''
-                SELECT * FROM user_preferences
-                WHERE user_id = ?
-            ''', (user_id,))
-            prefs = cursor.fetchone()
-        
-        conn.close()
-        return dict(prefs) if prefs else None
-    
-    def update_user_preferences(self, user_id, **kwargs):
-        """Met à jour les préférences d'un utilisateur"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        allowed_keys = ['theme', 'primary_color', 'secondary_color', 
-                       'accent_color', 'text_color', 'background_color',
-                       'font_family', 'notifications_enabled',
-                       'email_notifications']
-        
-        updates = []
-        values = []
-        
-        for key, value in kwargs.items():
-            if key in allowed_keys:
-                updates.append(f'{key} = ?')
-                values.append(value)
-        
-        if updates:
-            values.append(user_id)
-            cursor.execute(f'''
-                UPDATE user_preferences
-                SET {', '.join(updates)}, updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ?
-            ''', values)
-            conn.commit()
-        
-        conn.close()
-        return True
 
+    def load_project(self, user_id, project_name):
+        """Charge un projet pour un utilisateur"""
+        with self.engine.connect() as connection:
+            result = connection.execute(text("""
+                SELECT data_json, results_json
+                FROM saved_projects
+                WHERE user_id = :user_id AND project_name = :project_name
+            """), {'user_id': user_id, 'project_name': project_name})
+            
+            project = result.fetchone()
+            
+            if project:
+                data_dict = json.loads(project[0])
+                results_dict = json.loads(project[1]) if project[1] else None
+                return data_dict, results_dict
+            
+            return None, None
+
+    def list_projects(self, user_id):
+        """Liste les projets sauvegardés pour un utilisateur"""
+        with self.engine.connect() as connection:
+            result = connection.execute(text("""
+                SELECT project_name, updated_at
+                FROM saved_projects
+                WHERE user_id = :user_id
+                ORDER BY updated_at DESC
+            """), {'user_id': user_id})
+            
+            return [dict(row._mapping) for row in result]
+
+    def delete_project(self, user_id, project_name):
+        """Supprime un projet"""
+        with self.engine.connect() as connection:
+            connection.execute(text("""
+                DELETE FROM saved_projects
+                WHERE user_id = :user_id AND project_name = :project_name
+            """), {'user_id': user_id, 'project_name': project_name})
+            connection.commit()
+            return True
+
+# Remplacer la classe Database existante par la nouvelle implémentation
+# Renommer le fichier original pour le conserver en tant que référence
+os.rename('/home/ubuntu/project_analysis/SocialMediaAnalytics/database.py', 
+          '/home/ubuntu/project_analysis/SocialMediaAnalytics/database_sqlite_old.py')
+os.rename('/home/ubuntu/project_analysis/SocialMediaAnalytics/database_mysql.py', 
+          '/home/ubuntu/project_analysis/SocialMediaAnalytics/database.py')

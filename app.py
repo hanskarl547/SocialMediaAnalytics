@@ -99,20 +99,8 @@ def generate_custom_css():
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800;900&display=swap');
     
-    /* Correction pour les icônes Material Icons non chargées */
-    /* Masquer le texte "keyboard_double_arrow_right" et autres icônes Material non rendues */
-    [class*="keyboard_double"], 
-    [class*="material-icons"],
-    [data-testid*="keyboard"] {{
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        font-size: 0 !important;
-        line-height: 0 !important;
-        height: 0 !important;
-        width: 0 !important;
-        overflow: hidden !important;
-    }}
+        /* Tentative de correction: Import explicite de Material Icons */
+    @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
     
     
     /* Style global avec police personnalisée */
