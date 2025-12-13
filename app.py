@@ -61,10 +61,110 @@ if import_errors:
         st.error(f"  - {error}")
     st.stop()
 
-# Script JavaScript pour masquer le texte "keyboard_double_arrow_right" - EXÉCUTÉ EN PREMIER
+# Script JavaScript pour masquer le footer GitHub et le texte "keyboard_double_arrow_right" - EXÉCUTÉ EN PREMIER
 st.markdown("""
 <script>
 (function() {
+    // Fonction pour masquer les éléments GitHub
+    function hideGitHubElements() {
+        // Masquer tous les footers
+        const footers = document.querySelectorAll('footer, [data-testid="stFooter"], [role="contentinfo"]');
+        footers.forEach(function(footer) {
+            footer.style.display = 'none';
+            footer.style.visibility = 'hidden';
+            footer.style.opacity = '0';
+            footer.style.height = '0';
+            footer.style.width = '0';
+            footer.style.overflow = 'hidden';
+            footer.style.position = 'absolute';
+            footer.style.left = '-9999px';
+        });
+        
+        // Masquer tous les liens GitHub
+        const githubLinks = document.querySelectorAll('a[href*="github"], a[href*="GitHub"]');
+        githubLinks.forEach(function(link) {
+            link.style.display = 'none';
+            link.style.visibility = 'hidden';
+            link.style.opacity = '0';
+            link.style.height = '0';
+            link.style.width = '0';
+            link.style.overflow = 'hidden';
+            link.style.position = 'absolute';
+            link.style.left = '-9999px';
+        });
+        
+        // Masquer tous les iframes GitHub
+        const githubIframes = document.querySelectorAll('iframe[title*="github"], iframe[title*="GitHub"]');
+        githubIframes.forEach(function(iframe) {
+            iframe.style.display = 'none';
+            iframe.style.visibility = 'hidden';
+            iframe.style.opacity = '0';
+            iframe.style.height = '0';
+            iframe.style.width = '0';
+            iframe.style.overflow = 'hidden';
+        });
+        
+        // Masquer les éléments avec texte GitHub
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(function(el) {
+            if (el.textContent && (el.textContent.includes('GitHub') || 
+                el.textContent.includes('github') ||
+                el.textContent.includes('Made with Streamlit'))) {
+                // Vérifier si c'est dans un footer ou un lien
+                let parent = el;
+                let isInFooter = false;
+                while (parent && parent !== document.body) {
+                    if (parent.tagName === 'FOOTER' || 
+                        parent.getAttribute('data-testid') === 'stFooter' ||
+                        parent.getAttribute('role') === 'contentinfo' ||
+                        (parent.tagName === 'A' && parent.href && parent.href.includes('github'))) {
+                        isInFooter = true;
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+                if (isInFooter) {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                    el.style.opacity = '0';
+                    el.style.height = '0';
+                    el.style.width = '0';
+                    el.style.overflow = 'hidden';
+                }
+            }
+        });
+    }
+    
+    // Exécuter immédiatement
+    hideGitHubElements();
+    
+    // Exécuter après le chargement
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            hideGitHubElements();
+            setInterval(hideGitHubElements, 200);
+        });
+    } else {
+        hideGitHubElements();
+        setInterval(hideGitHubElements, 200);
+    }
+    
+    // Exécuter avec des délais
+    [100, 200, 500, 1000, 2000, 3000].forEach(function(delay) {
+        setTimeout(hideGitHubElements, delay);
+    });
+    
+    // Observer les changements du DOM pour GitHub
+    const githubObserver = new MutationObserver(function(mutations) {
+        hideGitHubElements();
+    });
+    githubObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true
+    });
+    
+    // Fonction pour masquer le texte "keyboard_double_arrow_right"
     function hideKeyboardDoubleArrow() {
         // Méthode 1: Chercher par texte dans tous les nœuds
         const allElements = document.querySelectorAll('*');
@@ -461,7 +561,7 @@ def generate_custom_css():
         font-family: {font_css} !important;
     }}
     
-    /* Masquer le footer GitHub de Streamlit Cloud */
+    /* Masquer le footer GitHub de Streamlit Cloud - VERSION COMPLÈTE POUR MOBILE ET DESKTOP */
     footer[data-testid="stFooter"],
     footer[data-testid="stFooter"] *,
     .stApp footer,
@@ -469,12 +569,61 @@ def generate_custom_css():
     div[data-testid="stDecoration"],
     iframe[title*="github"],
     iframe[title*="GitHub"],
-    a[href*="github.com"] {{
+    iframe[title*="GitHub"] *,
+    a[href*="github.com"],
+    a[href*="github.com"] *,
+    /* Masquer tous les liens GitHub */
+    a[href*="github"],
+    /* Masquer les badges "Made with Streamlit" */
+    a[href*="streamlit.io"],
+    a[href*="streamlit.io"] *,
+    /* Masquer les éléments dans le footer */
+    footer *,
+    [role="contentinfo"],
+    [role="contentinfo"] *,
+    /* Masquer les éléments avec des classes GitHub */
+    [class*="github"],
+    [class*="GitHub"],
+    [id*="github"],
+    [id*="GitHub"],
+    /* Masquer les éléments avec des attributs GitHub */
+    [aria-label*="github"],
+    [aria-label*="GitHub"],
+    [title*="github"],
+    [title*="GitHub"] {{
         display: none !important;
         visibility: hidden !important;
         height: 0 !important;
         width: 0 !important;
         opacity: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+    }}
+    
+    /* Masquer spécifiquement sur mobile */
+    @media (max-width: 768px) {{
+        footer,
+        footer *,
+        [data-testid="stFooter"],
+        [data-testid="stFooter"] *,
+        a[href*="github"],
+        a[href*="streamlit"],
+        iframe[title*="github"],
+        iframe[title*="GitHub"],
+        [class*="github"],
+        [id*="github"] {{
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            width: 0 !important;
+            opacity: 0 !important;
+            position: absolute !important;
+            left: -9999px !important;
+            overflow: hidden !important;
+            pointer-events: none !important;
+        }}
     }}
     
     /* Forcer le texte en noir pour les sections sans gradient sombre */
