@@ -382,22 +382,36 @@ def generate_custom_css():
     }}
     
     
-    /* Style global avec police personnalisée */
+    /* Style global */
     .main {{
         font-family: {font_css} !important;
         color: #000000 !important;
         background-color: #ffffff !important;
     }}
     
-    /* Appliquer la police à tous les éléments */
-    body, .stApp, [data-testid="stAppViewContainer"], 
+    /* Appliquer la police partout SAUF aux icônes */
+    body,
+    .stApp,
+    [data-testid="stAppViewContainer"],
     [data-testid="stHeader"],
-    .element-container, .stMarkdown, p, h1, h2, h3, h4, h5, h6,
-    div:not([style*="background"]):not([style*="gradient"]), 
-    span:not([style*="background"]):not([style*="gradient"]), 
-    label, .stText {{
+    .element-container,
+    .stMarkdown,
+    p, h1, h2, h3, h4, h5, h6,
+    div:not([style*="background"]):not([style*="gradient"]),
+    span:not(.material-icons):not([style*="background"]):not([style*="gradient"]),
+    label,
+    .stText {{
         font-family: {font_css} !important;
         color: #1f2937 !important;
+    }}
+    
+    /* ✅ RESTAURATION DES ICÔNES */
+    .material-icons,
+    span.material-icons,
+    i.material-icons {{
+        font-family: 'Material Icons' !important;
+        font-weight: normal !important;
+        font-style: normal !important;
     }}
     
     /* Texte blanc UNIQUEMENT pour les zones avec gradients sombres (violet/rose) */
