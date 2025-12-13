@@ -255,30 +255,10 @@ st.markdown("""
             }
         });
         
-        // MÉTHODE 3: MASQUER UNIQUEMENT LES ÉLÉMENTS CONTENANT LE TEXTE PROBLÉMATIQUE
+        // MÉTHODE 3: MASQUER UNIQUEMENT LE TEXTE (solution simple et sûre)
         const sidebar = document.querySelector('[data-testid="stSidebar"]');
         if (sidebar) {
-            // Parcourir TOUS les éléments de la sidebar pour trouver ceux qui contiennent le texte
-            const sidebarElements = sidebar.querySelectorAll('*');
-            sidebarElements.forEach(function(el) {
-                const elText = el.textContent || '';
-                // NE masquer QUE si l'élément contient le texte problématique
-                if (elText.includes('keyboard_double_arrow_right') || 
-                    elText.includes('keyboard_double')) {
-                    // Masquer l'élément
-                    el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; top: -9999px !important;';
-                    
-                    // Supprimer le texte
-                    el.textContent = '';
-                    
-                    // Essayer de supprimer
-                    try {
-                        el.remove();
-                    } catch(e) {}
-                }
-            });
-            
-            // Parcourir aussi les nœuds texte directement
+            // Parcourir tous les nœuds texte dans la sidebar
             const walker = document.createTreeWalker(
                 sidebar,
                 NodeFilter.SHOW_TEXT,
@@ -286,38 +266,47 @@ st.markdown("""
                 false
             );
             
-            const textNodesToRemove = [];
             let node;
             while (node = walker.nextNode()) {
                 if (node.textContent && (node.textContent.includes('keyboard_double_arrow_right') || 
                     node.textContent.includes('keyboard_double'))) {
-                    textNodesToRemove.push(node);
+                    // Masquer uniquement le texte, pas l'élément parent
+                    const parent = node.parentElement;
+                    if (parent) {
+                        // Remplacer le texte par une chaîne vide visuellement
+                        node.textContent = node.textContent.replace(/keyboard_double_arrow_right/g, '');
+                        node.textContent = node.textContent.replace(/keyboard_double/g, '');
+                        
+                        // Si le parent ne contient plus que ce texte, le masquer visuellement
+                        if (!parent.textContent || parent.textContent.trim() === '') {
+                            parent.style.color = 'transparent';
+                            parent.style.fontSize = '0';
+                            parent.style.lineHeight = '0';
+                            parent.style.opacity = '0';
+                            parent.style.visibility = 'hidden';
+                            parent.style.height = '0';
+                            parent.style.overflow = 'hidden';
+                        } else {
+                            // Sinon, masquer juste visuellement le texte restant
+                            parent.style.color = parent.textContent.includes('keyboard') ? 'transparent' : '';
+                        }
+                    }
                 }
             }
             
-            // Supprimer les nœuds texte trouvés
-            textNodesToRemove.forEach(function(textNode) {
-                // Supprimer le texte
-                textNode.textContent = '';
-                // Masquer le parent si nécessaire
-                if (textNode.parentElement) {
-                    const parent = textNode.parentElement;
-                    // Vérifier si le parent ne contient que ce texte
-                    if (!parent.textContent || parent.textContent.trim() === '' || 
-                        parent.textContent.includes('keyboard_double')) {
-                        parent.style.display = 'none';
-                        parent.style.visibility = 'hidden';
-                        parent.style.opacity = '0';
-                        parent.style.height = '0';
-                        parent.style.width = '0';
-                        parent.style.overflow = 'hidden';
-                    }
-                }
-                // Supprimer le nœud texte
-                try {
-                    textNode.remove();
-                } catch(e) {
-                    textNode.textContent = '';
+            // Aussi parcourir les éléments pour masquer visuellement
+            const sidebarElements = sidebar.querySelectorAll('*');
+            sidebarElements.forEach(function(el) {
+                const elText = el.textContent || '';
+                if (elText.includes('keyboard_double_arrow_right') || 
+                    elText.includes('keyboard_double')) {
+                    // Masquer visuellement sans supprimer l'élément
+                    el.style.color = 'transparent';
+                    el.style.fontSize = '0';
+                    el.style.lineHeight = '0';
+                    el.style.opacity = '0';
+                    el.style.visibility = 'hidden';
+                    // Garder la structure mais masquer le contenu
                 }
             });
         }
@@ -475,8 +464,8 @@ def generate_custom_css():
        (où apparaît souvent "keyboard_double_arrow_right")
        ============================================ */
     
-    /* Masquer UNIQUEMENT les éléments contenant "keyboard_double_arrow_right" - NE PAS masquer les menus ! */
-    /* Le JavaScript gère cela de manière sélective pour ne masquer que le texte problématique */
+    /* Masquer UNIQUEMENT le texte "keyboard_double_arrow_right" - Solution simple et sûre */
+    /* Le JavaScript gère le masquage visuel du texte sans affecter les menus */
     
     /* Masquer les éléments avec classes/attributs keyboard */
     [class*="keyboard_double"], 
