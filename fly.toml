@@ -1,0 +1,36 @@
+# Configuration Fly.io
+# Ce fichier est utilisé si vous déployez via Fly CLI
+
+app = "social-media-analytics"
+primary_region = "cdg"
+
+[build]
+
+[env]
+  PORT = "8501"
+
+[[services]]
+  internal_port = 8501
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.http_checks]]
+    interval = "10s"
+    timeout = "2s"
+    grace_period = "5s"
+    method = "GET"
+    path = "/"
+

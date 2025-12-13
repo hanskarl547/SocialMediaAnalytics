@@ -1,0 +1,16 @@
+# Configuration Render.com (optionnel)
+# Ce fichier permet de configurer votre service via un fichier YAML
+# au lieu de l'interface web
+
+services:
+  - type: web
+    name: social-media-analytics
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
+    envVars:
+      - key: PORT
+        value: 8501
+    # Les autres variables d'environnement doivent être ajoutées via l'interface web
+    # pour des raisons de sécurité
+

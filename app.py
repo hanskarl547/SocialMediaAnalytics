@@ -93,6 +93,22 @@ st.markdown("""
     font-weight: normal !important;
     font-style: normal !important;
 }
+
+/* 🔹 MASQUER LE TEXTE "keyboard_double_arrow_right" DANS LA SIDEBAR - CSS PUR */
+/* Cibler les éléments dans la sidebar qui pourraient contenir ce texte */
+[data-testid="stSidebar"] button[aria-label*="keyboard"],
+[data-testid="stSidebar"] [role="button"][aria-label*="keyboard"],
+[data-testid="stSidebar"] [title*="keyboard"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    pointer-events: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -100,6 +116,7 @@ st.markdown("""
 st.markdown("""
 <script>
 (function() {
+    'use strict';
     // Fonction pour masquer les éléments GitHub - VERSION AGRESSIVE
     function hideGitHubElements() {
         // Masquer tous les footers avec tous les styles possibles
@@ -211,135 +228,56 @@ st.markdown("""
         }, 300000); // 5 minutes
     }, 10000); // Démarrer après 10 secondes
     
-    // Fonction pour SUPPRIMER COMPLÈTEMENT le texte "keyboard_double_arrow_right"
+    // Fonction pour MASQUER le texte "keyboard_double_arrow_right" dans la sidebar UNIQUEMENT
     function hideKeyboardDoubleArrow() {
-        // MÉTHODE 1: SUPPRIMER les nœuds texte directement (LE PLUS EFFICACE)
+        // CIBLER UNIQUEMENT LA SIDEBAR pour éviter de casser les menus
+        const sidebar = document.querySelector('[data-testid="stSidebar"]');
+        if (!sidebar) return;
+        
+        // MÉTHODE 1: Parcourir les nœuds texte dans la sidebar UNIQUEMENT
         const walker = document.createTreeWalker(
-            document.body,
+            sidebar,
             NodeFilter.SHOW_TEXT,
             null,
             false
         );
         
-        const nodesToRemove = [];
         let node;
         while (node = walker.nextNode()) {
-            if (node.textContent && (node.textContent.includes('keyboard_double_arrow_right') || 
-                node.textContent.includes('keyboard_double'))) {
-                nodesToRemove.push(node);
+            const text = node.textContent || '';
+            // Vérifier si c'est EXACTEMENT le texte problématique ou le contient
+            if (text.includes('keyboard_double_arrow_right') || 
+                (text.trim() === 'keyboard_double_arrow_right') ||
+                (text.includes('keyboard_double') && text.length < 50)) { // Éviter de casser les menus longs
+                // Vérifier que ce n'est PAS dans un bouton de menu (qui contient d'autres textes)
+                const parent = node.parentElement;
+                if (parent) {
+                    const parentText = parent.textContent || '';
+                    // Si le parent contient d'autres textes (comme "🏠 Accueil"), c'est un menu, on ne touche pas
+                    if (parentText.length > 30 && !parentText.trim().startsWith('keyboard')) {
+                        // C'est probablement un menu, on ne touche pas
+                        continue;
+                    }
+                    // Sinon, c'est probablement l'icône problématique, on la masque
+                    parent.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important;';
+                    // Supprimer aussi le texte
+                    node.textContent = '';
+                }
             }
         }
         
-        // Supprimer les nœuds trouvés
-        nodesToRemove.forEach(function(textNode) {
-            // Supprimer le texte complètement
-            textNode.textContent = '';
-            // Si le parent n'a plus de contenu, le supprimer aussi
-            if (textNode.parentElement) {
-                const parent = textNode.parentElement;
-                // Vérifier si le parent n'a plus de contenu utile
-                if (!parent.textContent || parent.textContent.trim() === '' || 
-                    parent.textContent.includes('keyboard_double')) {
-                    parent.style.display = 'none';
-                    parent.style.visibility = 'hidden';
-                    parent.style.opacity = '0';
-                    parent.style.fontSize = '0';
-                    parent.style.height = '0';
-                    parent.style.width = '0';
-                    parent.style.overflow = 'hidden';
-                    parent.style.position = 'absolute';
-                    parent.style.left = '-9999px';
-                    // Essayer de supprimer complètement du DOM si possible
-                    if (parent.parentElement && parent.textContent.includes('keyboard_double')) {
-                        try {
-                            parent.remove();
-                        } catch(e) {}
-                    }
-                }
-            }
-            // Supprimer le nœud texte du DOM
-            try {
-                textNode.remove();
-            } catch(e) {
-                textNode.textContent = '';
+        // MÉTHODE 2: Cibler les éléments dans la sidebar qui ne contiennent QUE ce texte
+        const sidebarElements = sidebar.querySelectorAll('*');
+        sidebarElements.forEach(function(el) {
+            const elText = (el.textContent || '').trim();
+            // Si l'élément contient UNIQUEMENT le texte problématique (pas de menu)
+            if ((elText === 'keyboard_double_arrow_right' || 
+                 elText === 'keyboard_double') &&
+                elText.length < 30) { // Éviter les menus
+                // Masquer complètement
+                el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important;';
             }
         });
-        
-        // MÉTHODE 2: Remplacer les éléments contenant le texte par un emoji
-        const allElements = document.querySelectorAll('*');
-        allElements.forEach(function(el) {
-            const elText = el.textContent || '';
-            if (elText.includes('keyboard_double_arrow_right') || 
-                elText.includes('keyboard_double')) {
-                // Vérifier si c'est dans la sidebar (pour éviter de casser autre chose)
-                const isInSidebar = el.closest('[data-testid="stSidebar"]');
-                if (isInSidebar || elText.trim() === 'keyboard_double_arrow_right' || elText.trim().includes('keyboard_double_arrow_right')) {
-                    // Remplacer tout le contenu par l'emoji
-                    el.textContent = '➡️';
-                    el.innerHTML = '➡️';
-                    // S'assurer que l'élément est visible
-                    el.style.display = '';
-                    el.style.visibility = '';
-                    el.style.opacity = '';
-                    el.style.fontSize = '24px';
-                    el.style.color = '';
-                }
-            }
-        });
-        
-        // MÉTHODE 3: REMPLACER COMPLÈTEMENT LE CONTENU PAR UN EMOJI (dans la sidebar)
-        const sidebar = document.querySelector('[data-testid="stSidebar"]');
-        if (sidebar) {
-            // Parcourir tous les éléments de la sidebar
-            const sidebarElements = sidebar.querySelectorAll('*');
-            sidebarElements.forEach(function(el) {
-                const elText = el.textContent || '';
-                if (elText.includes('keyboard_double_arrow_right') || 
-                    elText.includes('keyboard_double')) {
-                    // Remplacer complètement le contenu par l'emoji
-                    el.textContent = '➡️';
-                    el.innerHTML = '➡️';
-                    // S'assurer que l'élément est visible et stylé correctement
-                    el.style.display = '';
-                    el.style.visibility = '';
-                    el.style.opacity = '';
-                    el.style.fontSize = '24px';
-                    el.style.color = '';
-                    el.style.height = '';
-                    el.style.width = '';
-                    el.style.overflow = '';
-                    el.style.position = '';
-                    el.style.left = '';
-                }
-            });
-            
-            // Parcourir aussi les nœuds texte directement pour les remplacer
-            const walker = document.createTreeWalker(
-                sidebar,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-            
-            let node;
-            while (node = walker.nextNode()) {
-                if (node.textContent && (node.textContent.includes('keyboard_double_arrow_right') || 
-                    node.textContent.includes('keyboard_double'))) {
-                    // Remplacer le texte directement par l'emoji
-                    node.textContent = '➡️';
-                    
-                    // S'assurer que le parent est visible
-                    const parent = node.parentElement;
-                    if (parent) {
-                        parent.style.display = '';
-                        parent.style.visibility = '';
-                        parent.style.opacity = '';
-                        parent.style.fontSize = '24px';
-                        parent.style.color = '';
-                    }
-                }
-            }
-        }
     }
     
     // EXÉCUTION TRÈS AGRESSIVE - Supprimer immédiatement et continuellement
