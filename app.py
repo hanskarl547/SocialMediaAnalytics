@@ -255,42 +255,57 @@ st.markdown("""
             }
         });
         
-        // MÉTHODE 3: Cibler spécifiquement la sidebar (où apparaît souvent)
+        // MÉTHODE 3: SOLUTION ULTIME - MASQUER SYSTÉMATIQUEMENT LE PREMIER ÉLÉMENT DE LA SIDEBAR
         const sidebar = document.querySelector('[data-testid="stSidebar"]');
         if (sidebar) {
-            // Cibler le premier enfant qui contient souvent ce texte
+            // Masquer TOUJOURS le premier enfant, peu importe son contenu
             const firstChild = sidebar.firstElementChild;
             if (firstChild) {
-                const firstChildText = firstChild.textContent || '';
-                if (firstChildText.includes('keyboard_double_arrow_right') || 
-                    firstChildText.includes('keyboard_double')) {
-                    firstChild.style.display = 'none';
-                    firstChild.style.visibility = 'hidden';
-                    firstChild.style.opacity = '0';
-                    firstChild.style.height = '0';
-                    firstChild.style.width = '0';
-                    firstChild.style.overflow = 'hidden';
-                    // Supprimer le texte
-                    firstChild.textContent = '';
-                    // Essayer de supprimer complètement
-                    try {
-                        firstChild.remove();
-                    } catch(e) {}
+                // Appliquer tous les styles de masquage
+                firstChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; max-height: 0 !important; max-width: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important; user-select: none !important;';
+                
+                // Supprimer tout le texte
+                firstChild.textContent = '';
+                
+                // Masquer aussi tous les enfants
+                const firstChildChildren = firstChild.querySelectorAll('*');
+                firstChildChildren.forEach(function(child) {
+                    child.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important;';
+                    child.textContent = '';
+                });
+                
+                // Essayer de supprimer complètement du DOM
+                try {
+                    firstChild.remove();
+                } catch(e) {
+                    // Si la suppression échoue, on garde le masquage CSS
                 }
             }
             
-            // Parcourir tous les éléments de la sidebar
+            // Aussi masquer le deuxième enfant si nécessaire (parfois le texte apparaît là)
+            const secondChild = sidebar.children[1];
+            if (secondChild) {
+                const secondChildText = secondChild.textContent || '';
+                if (secondChildText.includes('keyboard_double_arrow_right') || 
+                    secondChildText.includes('keyboard_double')) {
+                    secondChild.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important;';
+                    secondChild.textContent = '';
+                }
+            }
+            
+            // Parcourir TOUS les éléments de la sidebar et supprimer le texte problématique
             const sidebarElements = sidebar.querySelectorAll('*');
             sidebarElements.forEach(function(el) {
                 if (el.textContent && (el.textContent.includes('keyboard_double_arrow_right') || 
                     el.textContent.includes('keyboard_double'))) {
-                    el.textContent = '';
-                    el.style.display = 'none';
-                    el.style.visibility = 'hidden';
-                    el.style.opacity = '0';
-                    el.style.height = '0';
-                    el.style.width = '0';
-                    el.style.overflow = 'hidden';
+                    // Supprimer complètement le texte
+                    el.textContent = el.textContent.replace(/keyboard_double_arrow_right/g, '');
+                    el.textContent = el.textContent.replace(/keyboard_double/g, '');
+                    
+                    // Masquer l'élément
+                    el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important;';
+                    
+                    // Essayer de supprimer
                     try {
                         el.remove();
                     } catch(e) {}
@@ -427,19 +442,44 @@ def generate_custom_css():
     @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800;900&display=swap');
     
     /* ============================================
-       SOLUTION DRASTIQUE : MASQUER TOUT ÉLÉMENT CONTENANT "keyboard_double_arrow_right"
+       SOLUTION ULTIME : MASQUER LE PREMIER ÉLÉMENT DE LA SIDEBAR
+       (où apparaît souvent "keyboard_double_arrow_right")
        ============================================ */
     
-    /* Masquer TOUS les éléments qui contiennent ce texte - APPROCHE TRÈS AGRESSIVE */
-    * {{
-        /* Cette règle sera complétée par le JavaScript */
+    /* Masquer COMPLÈTEMENT le premier enfant direct de la sidebar */
+    [data-testid="stSidebar"] > div:first-child,
+    [data-testid="stSidebar"] > div:first-of-type,
+    [data-testid="stSidebar"] > :first-child {{
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        max-height: 0 !important;
+        max-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+        pointer-events: none !important;
+        user-select: none !important;
     }}
     
-    /* Masquer spécifiquement dans la sidebar */
-    [data-testid="stSidebar"] > div:first-child,
-    [data-testid="stSidebar"] > div:first-child > *,
-    [data-testid="stSidebar"] > div:first-child > * > * {{
-        /* Temporairement masqué - sera géré par JS */
+    /* Masquer aussi les enfants du premier élément */
+    [data-testid="stSidebar"] > div:first-child *,
+    [data-testid="stSidebar"] > div:first-of-type *,
+    [data-testid="stSidebar"] > :first-child * {{
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        font-size: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
     }}
     
     /* Masquer les éléments avec classes/attributs keyboard */
@@ -448,13 +488,11 @@ def generate_custom_css():
     [data-testid*="keyboard"],
     [id*="keyboard"],
     [aria-label*="keyboard"],
-    [title*="keyboard"],
-    [class*="material-icons"][class*="keyboard"] {{
+    [title*="keyboard"] {{
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         font-size: 0 !important;
-        line-height: 0 !important;
         height: 0 !important;
         width: 0 !important;
         overflow: hidden !important;
