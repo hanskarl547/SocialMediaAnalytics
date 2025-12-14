@@ -292,7 +292,15 @@ st.markdown("""
                 // 2. Le parent est un bouton avec beaucoup de texte = c'est un menu
                 // 3. Le parent a une classe stButton = c'est un bouton Streamlit utilisateur
                 // Détection d'emojis : vérifier si le texte contient des caractères Unicode au-delà de l'ASCII
-                var hasEmoji = /[^\u0000-\u007F]/.test(parentText);
+                // Utiliser une méthode simple sans séquences Unicode explicites
+                var hasEmoji = false;
+                for (var i = 0; i < parentText.length; i++) {
+                    var code = parentText.charCodeAt(i);
+                    if (code > 127) { // Au-delà de l'ASCII (0-127)
+                        hasEmoji = true;
+                        break;
+                    }
+                }
                 if (parent.classList.contains('stButton') || 
                     parent.closest('.stButton') ||
                     hasEmoji || // Contient des emojis ou caractères non-ASCII
