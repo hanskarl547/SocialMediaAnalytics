@@ -95,22 +95,14 @@ st.markdown("""
 }
 
 /* 🔹 MASQUER LE TEXTE "keyboard_double_arrow_right" DANS LA SIDEBAR - CSS PUR */
-/* Cibler les éléments dans la sidebar qui pourraient contenir ce texte */
-[data-testid="stSidebar"] button[aria-label*="keyboard"],
-[data-testid="stSidebar"] [role="button"][aria-label*="keyboard"],
-[data-testid="stSidebar"] [title*="keyboard"],
-[data-testid="stSidebar"] button[aria-label*="Collapse"],
-[data-testid="stSidebar"] button[aria-label*="Expand"],
-[data-testid="stSidebar"] button[aria-label*="Close"],
-[data-testid="stSidebar"] button[aria-label*="Open"],
-/* Masquer le premier bouton de la sidebar (bouton collapse) */
-[data-testid="stSidebar"] > div:first-child button:first-child,
-[data-testid="stSidebar"] > div:first-child > div:first-child button,
-[data-testid="stSidebar"] > div > div:first-child button,
-/* Masquer le bouton header de la sidebar */
-[data-testid="stSidebar"] button[kind="header"],
-/* Masquer tous les boutons au début de la sidebar */
-[data-testid="stSidebar"] button:first-of-type {
+/* Cibler UNIQUEMENT le bouton collapse de Streamlit, PAS les menus utilisateur */
+
+/* Cibler uniquement le header de la sidebar (pas le contenu utilisateur) */
+[data-testid="stSidebarHeader"] button[aria-label*="keyboard"],
+[data-testid="stSidebarHeader"] button[aria-label*="Collapse"],
+[data-testid="stSidebarHeader"] button[aria-label*="Expand"],
+[data-testid="stSidebarHeader"] button[aria-label*="Close"],
+[data-testid="stSidebarHeader"] button[aria-label*="Open"] {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -124,13 +116,15 @@ st.markdown("""
     line-height: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
-    border: none !important;
 }
 
-/* Masquer spécifiquement les spans/divs contenant le texte (via JavaScript, mais on prépare le CSS) */
-[data-testid="stSidebar"] span[class*="icon"],
-[data-testid="stSidebar"] div[class*="icon"] {
-    font-size: 0 !important;
+/* IMPORTANT : NE PAS masquer les boutons .stButton (boutons du menu utilisateur) */
+[data-testid="stSidebar"] .stButton,
+[data-testid="stSidebar"] button.stButton,
+[data-testid="stSidebar"] button[class*="stButton"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -252,12 +246,26 @@ st.markdown("""
     }, 10000); // Démarrer après 10 secondes
     
     // Fonction pour MASQUER le texte "keyboard_double_arrow_right" dans la sidebar UNIQUEMENT
+    // Version corrigée : ne masque QUE le bouton collapse, pas les menus utilisateur
     function hideKeyboardDoubleArrow() {
-        // CIBLER UNIQUEMENT LA SIDEBAR pour éviter de casser les menus
         const sidebar = document.querySelector('[data-testid="stSidebar"]');
         if (!sidebar) return;
         
-        // MÉTHODE 1: Parcourir les nœuds texte dans la sidebar UNIQUEMENT
+        // MÉTHODE CIBLE : Ne masquer que le bouton collapse de Streamlit (premier élément de la sidebar header)
+        // Ce bouton est généralement dans le premier div de la sidebar, avant le contenu utilisateur
+        
+        // Cibler uniquement le bouton collapse de Streamlit (première ligne de la sidebar)
+        const sidebarHeader = sidebar.querySelector('[data-testid="stSidebarHeader"]');
+        if (sidebarHeader) {
+            const collapseButton = sidebarHeader.querySelector('button[aria-label*="keyboard"], button[aria-label*="Collapse"], button[aria-label*="Expand"]');
+            if (collapseButton) {
+                collapseButton.style.display = 'none';
+                collapseButton.style.visibility = 'hidden';
+                collapseButton.textContent = '';
+            }
+        }
+        
+        // MÉTHODE ALTERNATIVE : Parcourir les nœuds texte mais être TRÈS sélectif
         const walker = document.createTreeWalker(
             sidebar,
             NodeFilter.SHOW_TEXT,
@@ -267,50 +275,33 @@ st.markdown("""
         
         let node;
         while (node = walker.nextNode()) {
-            const text = node.textContent || '';
-            // Vérifier si c'est EXACTEMENT le texte problématique ou le contient
-            if (text.includes('keyboard_double_arrow_right') || 
-                (text.trim() === 'keyboard_double_arrow_right') ||
-                (text.includes('keyboard_double') && text.length < 50)) { // Éviter de casser les menus longs
-                // Vérifier que ce n'est PAS dans un bouton de menu (qui contient d'autres textes)
+            const text = (node.textContent || '').trim();
+            
+            // Ne toucher QUE si c'est EXACTEMENT le texte problématique
+            if (text === 'keyboard_double_arrow_right' || text === 'keyboard_double') {
                 const parent = node.parentElement;
-                if (parent) {
-                    const parentText = parent.textContent || '';
-                    // Si le parent contient d'autres textes (comme "🏠 Accueil"), c'est un menu, on ne touche pas
-                    if (parentText.length > 30 && !parentText.trim().startsWith('keyboard')) {
-                        // C'est probablement un menu, on ne touche pas
-                        continue;
-                    }
-                    // Sinon, c'est probablement l'icône problématique, on la masque
-                    parent.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important;';
-                    // Supprimer aussi le texte
-                    node.textContent = '';
+                if (!parent) continue;
+                
+                // Vérifier que le parent n'est PAS un bouton de menu utilisateur
+                // Les boutons de menu utilisateur contiennent des emojis et du texte (🏠 Accueil, etc.)
+                const parentText = (parent.textContent || '').trim();
+                const parentHTML = parent.innerHTML || '';
+                
+                // NE PAS toucher si :
+                // 1. Le parent contient des emojis (🏠, 📊, etc.) = c'est un menu utilisateur
+                // 2. Le parent est un bouton avec beaucoup de texte = c'est un menu
+                // 3. Le parent a une classe stButton = c'est un bouton Streamlit utilisateur
+                if (parent.classList.contains('stButton') || 
+                    parent.closest('.stButton') ||
+                    /[\u{1F300}-\u{1F9FF}]/u.test(parentText) || // Contient des emojis
+                    parentText.length > 20) { // Contient beaucoup de texte
+                    continue; // C'est un menu utilisateur, on ne touche pas
                 }
+                
+                // Sinon, c'est probablement juste le texte problématique, on le masque
+                parent.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important;';
+                node.textContent = '';
             }
-        }
-        
-        // MÉTHODE 2: Cibler les éléments dans la sidebar qui ne contiennent QUE ce texte
-        const sidebarElements = sidebar.querySelectorAll('*');
-        sidebarElements.forEach(function(el) {
-            const elText = (el.textContent || '').trim();
-            // Si l'élément contient UNIQUEMENT le texte problématique (pas de menu)
-            if ((elText === 'keyboard_double_arrow_right' || 
-                 elText === 'keyboard_double' ||
-                 elText.includes('keyboard_double_arrow_right')) &&
-                elText.length < 50) { // Éviter les menus
-                // Masquer complètement
-                el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; font-size: 0 !important; height: 0 !important; width: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important; pointer-events: none !important;';
-                // Vider le texte aussi
-                el.textContent = '';
-            }
-        });
-        
-        // MÉTHODE 3: Cibler directement le premier bouton de la sidebar (bouton collapse)
-        const firstButton = sidebar.querySelector('button:first-of-type');
-        if (firstButton && (firstButton.textContent.includes('keyboard') || firstButton.getAttribute('aria-label')?.includes('keyboard'))) {
-            firstButton.style.display = 'none';
-            firstButton.style.visibility = 'hidden';
-            firstButton.textContent = '';
         }
     }
     
