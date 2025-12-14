@@ -291,9 +291,11 @@ st.markdown("""
                 // 1. Le parent contient des emojis (🏠, 📊, etc.) = c'est un menu utilisateur
                 // 2. Le parent est un bouton avec beaucoup de texte = c'est un menu
                 // 3. Le parent a une classe stButton = c'est un bouton Streamlit utilisateur
+                // Détection d'emojis : vérifier si le texte contient des caractères Unicode au-delà de l'ASCII
+                var hasEmoji = /[^\u0000-\u007F]/.test(parentText);
                 if (parent.classList.contains('stButton') || 
                     parent.closest('.stButton') ||
-                    /[\u{1F300}-\u{1F9FF}]/u.test(parentText) || // Contient des emojis
+                    hasEmoji || // Contient des emojis ou caractères non-ASCII
                     parentText.length > 20) { // Contient beaucoup de texte
                     continue; // C'est un menu utilisateur, on ne touche pas
                 }
